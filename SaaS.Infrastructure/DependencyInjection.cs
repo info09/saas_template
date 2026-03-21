@@ -30,6 +30,8 @@ public static class DependencyInjection
         // 4. Register Tenant Service
         services.AddHttpContextAccessor();
         services.AddScoped<ITenantService, TenantService>();
+        services.AddScoped<ITenantRepository, SaaS.Infrastructure.Repositories.TenantRepository>();
+        services.AddScoped<ITenantProvisioningService, SaaS.Infrastructure.Services.TenantProvisioningService>();
         services.AddScoped<ITodoRepository, SaaS.Infrastructure.Repositories.TodoRepository>();
 
         return services;

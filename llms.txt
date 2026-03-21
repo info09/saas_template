@@ -1,0 +1,15 @@
+# SaaS .NET 8 Template
+> A highly scalable Multi-Tenant SaaS template built on .NET 8 following Clean Architecture.
+
+## Core Files
+- `SaaS.Domain/`: Core entities (Tenant, TodoItem) and Enums.
+- `SaaS.Application/`: CQRS handlers (MediatR), DTOs, interfaces, and FluentValidation rules.
+- `SaaS.Infrastructure/`: EF Core logic (`CatalogDbContext`, `TenantDbContext`) and Identity setups.
+- `SaaS.Infrastructure/Persistence/Design/`: Contains EF Core `IDesignTimeDbContextFactory` configurations.
+- `SaaS.Infrastructure/Services/`: Contains `TenantProvisioningService` for spawning dynamic PostgreSQL databases.
+- `SaaS.API/`: Presentation controllers (`TenantController`, `TodoItemsController`).
+
+## Key Concepts
+- **Multi-Tenancy**: The application runs on a Database-per-tenant isolation mapping. `TenantResolutionMiddleware` reads `X-Tenant-Id` from HTTP headers to route DbContext connections dynamically.
+- **Automated Provisioning**: The `ITenantProvisioningService` dynamically creates DBs and runs `MigrateAsync()` synchronously on Tenant creation API calls.
+- **Clean Architecture Flow**: The dependency flow relies on API Controller -> MediatR Command -> Pipeline Validator -> CQRS Handler -> Repository Interface -> Database.

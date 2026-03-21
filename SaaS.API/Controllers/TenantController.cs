@@ -1,5 +1,7 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using SaaS.Application.Interfaces;
+using SaaS.Application.Tenants.Commands.CreateTenant;
 
 namespace SaaS.API.Controllers;
 
@@ -8,10 +10,12 @@ namespace SaaS.API.Controllers;
 public class TenantController : ControllerBase
 {
     private readonly ITenantService _tenantService;
+    private readonly IMediator _mediator;
 
-    public TenantController(ITenantService tenantService)
+    public TenantController(ITenantService tenantService, IMediator mediator)
     {
         _tenantService = tenantService;
+        _mediator = mediator;
     }
 
     [HttpGet("current")]
@@ -25,5 +29,12 @@ public class TenantController : ControllerBase
         }
 
         return Ok(new { TenantId = tenantId });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateTenant(CreateTenantCommand command)
+    {
+        var tenantId = await _mediator.Send(command);
+        return Ok(new { message = "Tenant created and provisioned successfully", tenantId });
     }
 }

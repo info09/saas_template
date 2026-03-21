@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SaaS.Application.Interfaces;
 using SaaS.Infrastructure.Identity;
+using SaaS.Domain.Entities;
 
 namespace SaaS.Infrastructure.Persistence;
 
@@ -19,6 +20,8 @@ public class TenantDbContext : IdentityDbContext<AppUser>
         _tenantService = tenantService;
     }
 
+    public DbSet<TodoItem> TodoItems => Set<TodoItem>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         var tenantConnectionString = _tenantService.GetConnectionString();
@@ -34,6 +37,7 @@ public class TenantDbContext : IdentityDbContext<AppUser>
     {
         base.OnModelCreating(builder);
         
+        builder.ApplyConfigurationsFromAssembly(typeof(TenantDbContext).Assembly);
         // Additional tenant-specific entity configurations go here
     }
 }

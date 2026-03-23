@@ -22,13 +22,13 @@ public class TodoRepository : ITodoRepository
     }
 
     public async Task<(IReadOnlyCollection<TodoItem> Items, int TotalCount)> GetPaginatedListAsync(
-        string userId, int pageNumber, int pageSize, bool? isCompleted, PriorityLevel? priority, CancellationToken cancellationToken)
+        string userId, int pageNumber, int pageSize, TodoStatus? status, PriorityLevel? priority, CancellationToken cancellationToken)
     {
-        var query = _context.TodoItems.Where(x => x.UserId == userId).AsQueryable();
+        var query = _context.TodoItems.Where(x => x.UserId == userId || x.AssignedToUserId == userId).AsQueryable();
 
-        if (isCompleted.HasValue)
+        if (status.HasValue)
         {
-            query = query.Where(x => x.IsCompleted == isCompleted.Value);
+            query = query.Where(x => x.Status == status.Value);
         }
 
         if (priority.HasValue)

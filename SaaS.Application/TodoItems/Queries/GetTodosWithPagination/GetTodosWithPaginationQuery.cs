@@ -11,7 +11,7 @@ public record GetTodosWithPaginationQuery : IRequest<PaginatedList<TodoItemDto>>
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 10;
     
-    public bool? IsCompleted { get; init; }
+    public TodoStatus? Status { get; init; }
     public PriorityLevel? Priority { get; init; }
 }
 
@@ -30,7 +30,7 @@ public class GetTodosWithPaginationQueryHandler : IRequestHandler<GetTodosWithPa
             request.UserId,
             request.PageNumber,
             request.PageSize,
-            request.IsCompleted,
+            request.Status,
             request.Priority,
             cancellationToken);
 
@@ -41,7 +41,8 @@ public class GetTodosWithPaginationQueryHandler : IRequestHandler<GetTodosWithPa
             Note = x.Note,
             Priority = x.Priority,
             DueDate = x.DueDate,
-            IsCompleted = x.IsCompleted,
+            Status = x.Status,
+            AssignedToUserId = x.AssignedToUserId,
             CreatedAt = x.CreatedAt
         }).ToList();
 

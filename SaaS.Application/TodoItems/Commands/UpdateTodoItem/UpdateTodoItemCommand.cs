@@ -13,7 +13,8 @@ public record UpdateTodoItemCommand : IRequest
     public string? Note { get; init; }
     public PriorityLevel Priority { get; init; } = PriorityLevel.None;
     public DateTime? DueDate { get; init; }
-    public bool IsCompleted { get; init; }
+    public TodoStatus Status { get; init; }
+    public string? AssignedToUserId { get; init; }
 }
 
 public class UpdateTodoItemCommandHandler : IRequestHandler<UpdateTodoItemCommand>
@@ -37,7 +38,8 @@ public class UpdateTodoItemCommandHandler : IRequestHandler<UpdateTodoItemComman
         entity.Note = request.Note;
         entity.Priority = request.Priority;
         entity.DueDate = request.DueDate;
-        entity.IsCompleted = request.IsCompleted;
+        entity.Status = request.Status;
+        entity.AssignedToUserId = request.AssignedToUserId;
         entity.LastModifiedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(entity, cancellationToken);

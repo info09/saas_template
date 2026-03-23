@@ -13,6 +13,7 @@ public record CreateTodoItemCommand : IRequest<int>
     public string? Note { get; init; }
     public PriorityLevel Priority { get; init; } = PriorityLevel.None;
     public DateTime? DueDate { get; init; }
+    public string? AssignedToUserId { get; init; }
 }
 
 public class CreateTodoItemCommandHandler : IRequestHandler<CreateTodoItemCommand, int>
@@ -33,7 +34,8 @@ public class CreateTodoItemCommandHandler : IRequestHandler<CreateTodoItemComman
             Note = request.Note,
             Priority = request.Priority,
             DueDate = request.DueDate,
-            IsCompleted = false
+            AssignedToUserId = request.AssignedToUserId,
+            Status = TodoStatus.OnPlan
         };
 
         await _repository.AddAsync(entity, cancellationToken);

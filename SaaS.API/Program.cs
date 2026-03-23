@@ -1,10 +1,12 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SaaS.API.Middlewares;
 using SaaS.Application;
 using SaaS.Infrastructure;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using SaaS.Infrastructure.Persistence;
 using Serilog;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,5 +68,23 @@ app.UseMiddleware<TenantAuthorizationMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Automatic Database Migrations
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var catalogContext = services.GetRequiredService<SaaS.Infrastructure.Persistence.CatalogDbContext>();
+        await catalogContext.Database.MigrateAsync();
+
+        await services.ApplyTenantMigrationsAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred during database migration.");
+    }
+}
 
 app.Run();

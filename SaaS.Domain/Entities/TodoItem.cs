@@ -12,9 +12,10 @@ public class TodoItem
     public string? Note { get; set; }
     
     public PriorityLevel Priority { get; set; } = PriorityLevel.None;
+    public TodoStatus Status { get; set; } = TodoStatus.OnPlan;
     
+    public string? AssignedToUserId { get; set; }
     public DateTime? DueDate { get; set; }
-    public bool IsCompleted { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastModifiedAt { get; set; }

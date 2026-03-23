@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using SaaS.Application.TodoItems.Commands.CreateTodoItem;
 using SaaS.Application.TodoItems.Commands.DeleteTodoItem;
 using SaaS.Application.TodoItems.Commands.UpdateTodoItem;
+using SaaS.Application.TodoItems.Commands.AssignTodoItem;
+using SaaS.Application.TodoItems.Commands.UpdateTodoItemStatus;
 using SaaS.Application.TodoItems.Queries.GetTodosWithPagination;
 using System.Security.Claims;
 
@@ -59,6 +61,24 @@ public class TodoItemsController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var command = new DeleteTodoItemCommand(id, GetUserId());
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/assign")]
+    public async Task<IActionResult> Assign(int id, AssignTodoItemCommand command)
+    {
+        if (id != command.Id) return BadRequest("ID mismatch.");
+        command.UserId = GetUserId();
+        await _mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, UpdateTodoItemStatusCommand command)
+    {
+        if (id != command.Id) return BadRequest("ID mismatch.");
+        command.UserId = GetUserId();
         await _mediator.Send(command);
         return NoContent();
     }

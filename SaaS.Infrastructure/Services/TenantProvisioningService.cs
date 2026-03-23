@@ -12,11 +12,13 @@ public class TenantProvisioningService : ITenantProvisioningService
 {
     private readonly CatalogDbContext _catalogDb;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IEncryptionService _encryptionService;
 
-    public TenantProvisioningService(CatalogDbContext catalogDb, IServiceProvider serviceProvider)
+    public TenantProvisioningService(CatalogDbContext catalogDb, IServiceProvider serviceProvider, IEncryptionService encryptionService)
     {
         _catalogDb = catalogDb;
         _serviceProvider = serviceProvider;
+        _encryptionService = encryptionService;
     }
 
     public async Task ProvisionTenantAsync(Tenant tenant, string adminEmail, string adminPassword, CancellationToken cancellationToken)
@@ -27,10 +29,11 @@ public class TenantProvisioningService : ITenantProvisioningService
         var dbName = $"SaaS_Tenant_{tenant.Id}";
         builder.Database = dbName;
 
-        tenant.ConnectionString = builder.ToString();
+        var rawConnectionString = builder.ToString();
+        tenant.ConnectionString = _encryptionService.Encrypt(rawConnectionString);
 
         var optionsBuilder = new DbContextOptionsBuilder<TenantDbContext>();
-        optionsBuilder.UseNpgsql(tenant.ConnectionString);
+        optionsBuilder.UseNpgsql(rawConnectionString);
 
         var dummyTenantService = new DummyProvisioningTenantService(tenant.Id, tenant.ConnectionString);
 

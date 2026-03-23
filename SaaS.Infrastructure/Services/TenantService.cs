@@ -9,15 +9,18 @@ public class TenantService : ITenantService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IEncryptionService _encryptionService;
     private string? _currentTenantId;
     private string? _connectionString;
 
     public TenantService(
         IHttpContextAccessor httpContextAccessor,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IEncryptionService encryptionService)
     {
         _httpContextAccessor = httpContextAccessor;
         _serviceProvider = serviceProvider;
+        _encryptionService = encryptionService;
         
         ResolveTenant();
     }
@@ -45,7 +48,7 @@ public class TenantService : ITenantService
                 var tenant = catalogDb.Tenants.FirstOrDefault(t => t.Id == _currentTenantId && t.IsActive);
                 if (tenant != null)
                 {
-                    _connectionString = tenant.ConnectionString;
+                    _connectionString = _encryptionService.Decrypt(tenant.ConnectionString);
                 }
                 else
                 {

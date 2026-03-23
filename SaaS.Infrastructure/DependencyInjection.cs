@@ -37,6 +37,7 @@ public static class DependencyInjection
         // 5. Auth Services
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddSingleton<IEncryptionService, EncryptionService>();
 
         return services;
     }

@@ -47,7 +47,16 @@ public class TenantService : ITenantService
                 {
                     _connectionString = tenant.ConnectionString;
                 }
+                else
+                {
+                    // Tenant not found in Catalog DB
+                    System.Diagnostics.Debug.WriteLine($"TenantService: Tenant '{_currentTenantId}' not found or inactive.");
+                }
             }
+        }
+        else
+        {
+             System.Diagnostics.Debug.WriteLine("TenantService: Missing 'X-Tenant-Id' header in request.");
         }
     }
 }

@@ -24,12 +24,19 @@ public class TenantDbContext : IdentityDbContext<AppUser>
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        if (optionsBuilder.IsConfigured) return;
+
         var tenantConnectionString = _tenantService.GetConnectionString();
         
         if (!string.IsNullOrEmpty(tenantConnectionString))
         {
             // Dynamically set connection string based on current tenant
             optionsBuilder.UseNpgsql(tenantConnectionString);
+        }
+        else
+        {
+            // Throwing a descriptive exception is better than using a dummy string that causes transient connection errors.
+            throw new InvalidOperationException("Project Multi-tenant Error: Tenant connection string could not be resolved. Ensure the 'X-Tenant-Id' header is present and the tenant exists in the Master Database.");
         }
     }
 

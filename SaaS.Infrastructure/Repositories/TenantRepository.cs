@@ -6,9 +6,9 @@ namespace SaaS.Infrastructure.Repositories;
 
 public class TenantRepository : ITenantRepository
 {
-    private readonly CatalogDbContext _context;
+    private readonly MasterDbContext _context;
 
-    public TenantRepository(CatalogDbContext context)
+    public TenantRepository(MasterDbContext context)
     {
         _context = context;
     }

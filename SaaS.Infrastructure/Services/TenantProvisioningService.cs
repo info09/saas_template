@@ -10,11 +10,11 @@ namespace SaaS.Infrastructure.Services;
 
 public class TenantProvisioningService : ITenantProvisioningService
 {
-    private readonly CatalogDbContext _catalogDb;
+    private readonly MasterDbContext _catalogDb;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEncryptionService _encryptionService;
 
-    public TenantProvisioningService(CatalogDbContext catalogDb, IServiceProvider serviceProvider, IEncryptionService encryptionService)
+    public TenantProvisioningService(MasterDbContext catalogDb, IServiceProvider serviceProvider, IEncryptionService encryptionService)
     {
         _catalogDb = catalogDb;
         _serviceProvider = serviceProvider;
@@ -25,7 +25,7 @@ public class TenantProvisioningService : ITenantProvisioningService
     {
         var catalogConnString = _catalogDb.Database.GetDbConnection().ConnectionString;
         var builder = new NpgsqlConnectionStringBuilder(catalogConnString);
-        
+
         var dbName = $"SaaS_Tenant_{tenant.Id}";
         builder.Database = dbName;
 
@@ -43,7 +43,7 @@ public class TenantProvisioningService : ITenantProvisioningService
 
         await SeedAdminUserAsync(context, adminEmail, adminPassword, cancellationToken);
     }
-    
+
     private async Task SeedAdminUserAsync(TenantDbContext context, string email, string password, CancellationToken ct)
     {
         var hasher = new PasswordHasher<AppUser>();
@@ -53,6 +53,8 @@ public class TenantProvisioningService : ITenantProvisioningService
         var adminUser = new AppUser
         {
             Id = Guid.NewGuid().ToString(),
+            FirstName = "admin",
+            LastName = "admin",
             UserName = email,
             NormalizedUserName = email.ToUpper(),
             Email = email,
@@ -61,7 +63,7 @@ public class TenantProvisioningService : ITenantProvisioningService
             SecurityStamp = Guid.NewGuid().ToString("D"),
             ConcurrencyStamp = Guid.NewGuid().ToString("D")
         };
-        
+
         adminUser.PasswordHash = hasher.HashPassword(adminUser, password);
 
         context.Users.Add(adminUser);
@@ -75,13 +77,13 @@ public class DummyProvisioningTenantService : ITenantService
 {
     private readonly string _tenantId;
     private readonly string _connectionString;
-    
+
     public DummyProvisioningTenantService(string tenantId, string connectionString)
     {
         _tenantId = tenantId;
         _connectionString = connectionString;
     }
-    
+
     public string? GetCurrentTenantId() => _tenantId;
     public string? GetConnectionString() => _connectionString;
 }

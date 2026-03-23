@@ -11,7 +11,7 @@ using SaaS.Infrastructure.Persistence;
 
 namespace SaaS.Infrastructure.Persistence.Migrations.Catalog
 {
-    [DbContext(typeof(CatalogDbContext))]
+    [DbContext(typeof(MasterDbContext))]
     [Migration("20260321164800_AddTenantProvisioning")]
     partial class AddTenantProvisioning
     {

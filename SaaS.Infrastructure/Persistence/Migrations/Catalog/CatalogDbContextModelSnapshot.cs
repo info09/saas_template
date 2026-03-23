@@ -10,7 +10,7 @@ using SaaS.Infrastructure.Persistence;
 
 namespace SaaS.Infrastructure.Persistence.Migrations.Catalog
 {
-    [DbContext(typeof(CatalogDbContext))]
+    [DbContext(typeof(MasterDbContext))]
     partial class CatalogDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

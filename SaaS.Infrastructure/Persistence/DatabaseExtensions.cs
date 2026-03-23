@@ -13,7 +13,7 @@ public static class DatabaseExtensions
         using var scope = serviceProvider.CreateScope();
         var services = scope.ServiceProvider;
         var logger = services.GetRequiredService<ILogger<TenantDbContext>>();
-        var catalogContext = services.GetRequiredService<CatalogDbContext>();
+        var catalogContext = services.GetRequiredService<MasterDbContext>();
         var encryptionService = services.GetRequiredService<IEncryptionService>();
 
         logger.LogInformation("Starting automated tenant migrations...");

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using SaaS.Application.Auth;
+using SaaS.Application.Common.Models;
 
 namespace SaaS.API.Controllers;
 
@@ -29,7 +30,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginCommand command)
+    public async Task<ActionResult<Result<LoginResponse>>> Login(LoginCommand command)
     {
         var response = await _mediator.Send(command);
 

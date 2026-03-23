@@ -1,10 +1,11 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SaaS.Application.Common.Models;
+using SaaS.Application.TodoItems.Commands.AssignTodoItem;
 using SaaS.Application.TodoItems.Commands.CreateTodoItem;
 using SaaS.Application.TodoItems.Commands.DeleteTodoItem;
 using SaaS.Application.TodoItems.Commands.UpdateTodoItem;
-using SaaS.Application.TodoItems.Commands.AssignTodoItem;
 using SaaS.Application.TodoItems.Commands.UpdateTodoItemStatus;
 using SaaS.Application.TodoItems.Queries.GetTodosWithPagination;
 using System.Security.Claims;
@@ -29,7 +30,7 @@ public class TodoItemsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetTodosWithPagination([FromQuery] GetTodosWithPaginationQuery query)
+    public async Task<ActionResult<Result<PaginatedList<TodoItemDto>>>> GetTodosWithPagination([FromQuery] GetTodosWithPaginationQuery query)
     {
         query.UserId = GetUserId();
         var result = await _mediator.Send(query);

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using SaaS.Domain.Exceptions;
 using System.Net;
 using System.Text.Json;
@@ -46,30 +45,27 @@ public class GlobalExceptionMiddleware
         }
         else if (exception is FluentValidation.ValidationException validationEx)
         {
-            statusCode = HttpStatusCode.BadRequest;
             var validationErrors = validationEx.Errors
-                .GroupBy(e => e.PropertyName)
-                .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-            
+                .Select(e => $"{e.PropertyName}: {e.ErrorMessage}")
+                .ToList();
+
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)statusCode;
-            return context.Response.WriteAsync(JsonSerializer.Serialize(new 
-            { 
-                status = (int)statusCode,
-                title = "One or more validation errors occurred.",
-                errors = validationErrors 
-            }));
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+
+            var result = SaaS.Application.Common.Models.Result.Failure(
+                validationErrors,
+                "One or more validation errors occurred.");
+
+            return context.Response.WriteAsync(JsonSerializer.Serialize(result));
         }
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
 
-        var result = JsonSerializer.Serialize(new 
-        { 
-            status = (int)statusCode,
-            title = message,
-            detail = exception.Message // In production, you might want to hide this detail
-        });
-        return context.Response.WriteAsync(result);
+        var response = SaaS.Application.Common.Models.Result.Failure(
+            new[] { exception.Message },
+            message);
+
+        return context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
 }

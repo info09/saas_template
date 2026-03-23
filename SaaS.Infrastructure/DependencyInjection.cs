@@ -14,7 +14,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // 1. Add Catalog DbContext (Master DB)
-        services.AddDbContext<CatalogDbContext>(options =>
+        services.AddDbContext<MasterDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("CatalogConnection")));
 
         // 2. Add Tenant DbContext (Tenant-specific DB)
@@ -23,7 +23,14 @@ public static class DependencyInjection
         });
 
         // 3. Add Identity using TenantDbContext
-        services.AddIdentity<AppUser, IdentityRole>()
+        services.AddIdentityCore<AppUser>(options => {
+            options.Password.RequireDigit = false;
+            options.Password.RequiredLength = 6;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+        })
+            .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TenantDbContext>()
             .AddDefaultTokenProviders();
 

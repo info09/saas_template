@@ -21,7 +21,7 @@ public class TenantService : ITenantService
         _httpContextAccessor = httpContextAccessor;
         _serviceProvider = serviceProvider;
         _encryptionService = encryptionService;
-        
+
         ResolveTenant();
     }
 
@@ -38,13 +38,13 @@ public class TenantService : ITenantService
         if (httpContext.Request.Headers.TryGetValue("X-Tenant-Id", out var tenantIdValues))
         {
             _currentTenantId = tenantIdValues.FirstOrDefault();
-            
+
             if (!string.IsNullOrEmpty(_currentTenantId))
             {
                 // We use a new scope to resolve CatalogDbContext to avoid circular dependency
                 using var scope = _serviceProvider.CreateScope();
-                var catalogDb = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-                
+                var catalogDb = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
+
                 var tenant = catalogDb.Tenants.FirstOrDefault(t => t.Id == _currentTenantId && t.IsActive);
                 if (tenant != null)
                 {
@@ -59,7 +59,7 @@ public class TenantService : ITenantService
         }
         else
         {
-             System.Diagnostics.Debug.WriteLine("TenantService: Missing 'X-Tenant-Id' header in request.");
+            System.Diagnostics.Debug.WriteLine("TenantService: Missing 'X-Tenant-Id' header in request.");
         }
     }
 }

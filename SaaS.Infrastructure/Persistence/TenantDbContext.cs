@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SaaS.Application.Interfaces;
-using SaaS.Infrastructure.Identity;
 using SaaS.Domain.Entities;
+using SaaS.Infrastructure.Identity;
 
 namespace SaaS.Infrastructure.Persistence;
 
@@ -27,11 +27,11 @@ public class TenantDbContext : IdentityDbContext<AppUser>
         if (optionsBuilder.IsConfigured) return;
 
         var tenantConnectionString = _tenantService.GetConnectionString();
-        
         if (!string.IsNullOrEmpty(tenantConnectionString))
         {
             // Dynamically set connection string based on current tenant
-            optionsBuilder.UseNpgsql(tenantConnectionString);
+            optionsBuilder.UseNpgsql(tenantConnectionString, npgsqlOptions =>
+                npgsqlOptions.EnableRetryOnFailure());
         }
         else
         {
@@ -43,7 +43,7 @@ public class TenantDbContext : IdentityDbContext<AppUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-        
+
         builder.ApplyConfigurationsFromAssembly(typeof(TenantDbContext).Assembly);
         // Additional tenant-specific entity configurations go here
     }

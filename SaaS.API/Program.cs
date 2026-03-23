@@ -4,8 +4,21 @@ using SaaS.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithProcessId()
+    .Enrich.WithThreadId()
+    .Enrich.WithMachineName()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddApplication();
@@ -44,10 +57,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Middlewares
+app.UseSerilogRequestLogging();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<TenantResolutionMiddleware>();
 
 app.UseAuthentication();
+app.UseMiddleware<TenantAuthorizationMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

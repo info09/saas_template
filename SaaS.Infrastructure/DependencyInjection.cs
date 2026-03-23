@@ -34,6 +34,9 @@ public static class DependencyInjection
         services.AddScoped<ITenantProvisioningService, SaaS.Infrastructure.Services.TenantProvisioningService>();
         services.AddScoped<ITodoRepository, SaaS.Infrastructure.Repositories.TodoRepository>();
 
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
         // 5. Auth Services
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ITokenService, TokenService>();

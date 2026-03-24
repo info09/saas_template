@@ -14,7 +14,7 @@ public class IdentityService : IIdentityService
         _userManager = userManager;
     }
 
-    public async Task<(Result Result, string UserId)> AuthenticateAsync(string email, string password, string tenantId)
+    public async Task<(Result Result, string UserId)> AuthenticateAsync(string email, string password)
     {
         var user = await _userManager.FindByEmailAsync(email);
 

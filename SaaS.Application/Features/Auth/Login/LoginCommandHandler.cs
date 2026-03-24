@@ -18,7 +18,7 @@ namespace SaaS.Application.Features.Auth.Login
 
         public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            var (result, userId) = await _identityService.AuthenticateAsync(request.Email, request.Password, request.TenantId);
+            var (result, userId) = await _identityService.AuthenticateAsync(request.Email, request.Password);
 
             if (!result.Succeeded)
             {

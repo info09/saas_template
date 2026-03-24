@@ -39,14 +39,19 @@ Mở terminal ở thư mục gốc `SaaS.Template` và chạy:
 **A. Migration cho Master Catalog (Lưu danh sách khách hàng):**
 ```bash
 dotnet ef migrations add InitialCatalog -c CatalogDbContext -o Persistence/Migrations/Catalog -p SaaS.Infrastructure -s SaaS.API
-dotnet ef database update -c CatalogDbContext -p SaaS.Infrastructure -s SaaS.API
 ```
 
 **B. Migration cho Tenant (Lưu Dữ liệu Schema của mỗi khách hàng):**
 ```bash
 dotnet ef migrations add InitialTenant -c TenantDbContext -o Persistence/Migrations/Tenant -p SaaS.Infrastructure -s SaaS.API
 ```
-> **Lưu ý**: Bạn không cần chạy `database update` cho Tenant ở bước này. Việc tạo ra DB và apply schema sẽ được thực thi khi bạn tạo mới một `Tenant` thông qua API hoặc script riêng.
+Sau khi đã có migration, apply schema bằng các lệnh explicit sau:
+```bash
+dotnet run --project SaaS.API -- --migrate-master
+dotnet run --project SaaS.API -- --migrate-tenants
+dotnet run --project SaaS.API -- --migrate-all
+```
+> **Lưu ý**: API không còn tự động chạy migration lúc startup. Điều này tách deployment schema ra khỏi vòng đời boot của ứng dụng.
 
 ---
 

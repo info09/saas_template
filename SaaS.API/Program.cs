@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SaaS.API.Middlewares;
 using SaaS.Application;
 using SaaS.Infrastructure;
-using SaaS.Infrastructure.Extensions;
+using SaaS.Infrastructure.Services;
 using Serilog;
 using System.Text;
 
@@ -100,6 +99,33 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+if (args.Contains("--migrate-master", StringComparer.OrdinalIgnoreCase) ||
+    args.Contains("--migrate-tenants", StringComparer.OrdinalIgnoreCase) ||
+    args.Contains("--migrate-all", StringComparer.OrdinalIgnoreCase))
+{
+    using var scope = app.Services.CreateScope();
+    var migrationService = scope.ServiceProvider.GetRequiredService<DatabaseMigrationService>();
+
+    if (args.Contains("--migrate-all", StringComparer.OrdinalIgnoreCase))
+    {
+        await migrationService.MigrateAllAsync();
+    }
+    else
+    {
+        if (args.Contains("--migrate-master", StringComparer.OrdinalIgnoreCase))
+        {
+            await migrationService.MigrateMasterAsync();
+        }
+
+        if (args.Contains("--migrate-tenants", StringComparer.OrdinalIgnoreCase))
+        {
+            await migrationService.MigrateTenantsAsync();
+        }
+    }
+
+    return;
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -121,24 +147,6 @@ app.UseMiddleware<TenantAuthorizationMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Automatic Database Migrations
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var catalogContext = services.GetRequiredService<SaaS.Infrastructure.Persistence.MasterDbContext>();
-        await catalogContext.Database.MigrateAsync();
-
-        await services.ApplyTenantMigrationsAsync();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred during database migration.");
-    }
-}
 
 app.Run();
 

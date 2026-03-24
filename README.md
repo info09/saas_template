@@ -24,7 +24,12 @@ This is a ready-to-use template for building Software as a Service (SaaS) applic
    ```bash
    dotnet ef migrations add InitialCatalog -c CatalogDbContext -o Persistence/Migrations/Catalog -p SaaS.Infrastructure -s SaaS.API
    dotnet ef migrations add InitialTenant -c TenantDbContext -o Persistence/Migrations/Tenant -p SaaS.Infrastructure -s SaaS.API
-   dotnet ef database update -c CatalogDbContext
+   dotnet run --project SaaS.API -- --migrate-all
    ```
-3. Run the API project (`dotnet run` or F5 in Visual Studio).
+3. Run the API project (`dotnet run --project SaaS.API` or F5 in Visual Studio).
 4. Use the Swagger UI to test endpoints. For tenant-specific requests, make sure to include the `X-Tenant-Id` Header.
+
+Migration commands are now explicit and no longer run automatically during API startup:
+- `dotnet run --project SaaS.API -- --migrate-master`
+- `dotnet run --project SaaS.API -- --migrate-tenants`
+- `dotnet run --project SaaS.API -- --migrate-all`

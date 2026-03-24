@@ -6,9 +6,9 @@ namespace SaaS.Infrastructure.Persistence;
 /// <summary>
 /// Master database context containing all tenants.
 /// </summary>
-public class CatalogDbContext : DbContext
+public class MasterDbContext : DbContext
 {
-    public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options)
+    public MasterDbContext(DbContextOptions<MasterDbContext> options) : base(options)
     {
     }
 
@@ -17,7 +17,7 @@ public class CatalogDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
         // Tenant configuration
         modelBuilder.Entity<Tenant>().HasKey(t => t.Id);
         modelBuilder.Entity<Tenant>().Property(t => t.Id).HasMaxLength(50);

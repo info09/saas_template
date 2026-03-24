@@ -40,7 +40,7 @@ public class TenantService : ITenantService
             {
                 // We use a new scope to resolve CatalogDbContext to avoid circular dependency
                 using var scope = _serviceProvider.CreateScope();
-                var catalogDb = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+                var catalogDb = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
                 
                 var tenant = catalogDb.Tenants.FirstOrDefault(t => t.Id == _currentTenantId && t.IsActive);
                 if (tenant != null)

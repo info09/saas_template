@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: saas_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin1234
+      POSTGRES_DB: SaaS_MasterDb
+    ports:
+      - "5433:5432" # Host 5433 maps to container 5432 (Postgres default)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    image: saas-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saas_api
+    depends_on:
+      - db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CatalogConnection=Host=db;Port=5432;Database=SaaS_MasterDb;Username=admin;Password=admin1234
+      - Jwt__Key=chuoi_ky_tu_bi_mat_rat_dai_va_an_toan_1234567890
+      - Encryption__Key=secure_key_for_tenant_db_32chars!
+    ports:
+      - "5000:8080"
+    restart: always
+
+volumes:
+  postgres_data:

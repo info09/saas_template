@@ -1,7 +1,8 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using SaaS.Domain.Exceptions;
 using System.Net;
-using System.Text.Json;
 
 namespace SaaS.API.Middlewares;
 
@@ -28,19 +29,54 @@ public class GlobalExceptionMiddleware
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        var statusCode = HttpStatusCode.InternalServerError;
-        var message = "An unexpected error occurred.";
+        ProblemDetails problemDetails;
 
-        if (exception is TenantNotFoundException tenantEx)
+        if (exception is ValidationException validationException)
         {
-            statusCode = HttpStatusCode.NotFound;
-            message = tenantEx.Message;
+            var errors = validationException.Errors
+                .GroupBy(
+                    failure => string.IsNullOrWhiteSpace(failure.PropertyName) ? "request" : failure.PropertyName,
+                    failure => failure.ErrorMessage)
+                .ToDictionary(group => group.Key, group => group.Distinct().ToArray());
+
+            problemDetails = new ValidationProblemDetails(errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors occurred."
+            };
+        }
+        else if (exception is TenantNotFoundException tenantEx)
+        {
+            problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Tenant not found.",
+                Detail = tenantEx.Message
+            };
+        }
+        else if (exception is InvalidOperationException invalidOperationException)
+        {
+            problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Invalid request.",
+                Detail = invalidOperationException.Message
+            };
+        }
+        else
+        {
+            problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "An unexpected error occurred.",
+                Detail = "The server could not complete the request."
+            };
         }
 
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)statusCode;
+        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode = problemDetails.Status ?? (int)HttpStatusCode.InternalServerError;
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
 
-        var result = JsonSerializer.Serialize(new { error = message });
-        return context.Response.WriteAsync(result);
+        return context.Response.WriteAsJsonAsync(problemDetails);
     }
 }

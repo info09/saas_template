@@ -1,4 +1,5 @@
-﻿using SaaS.Application.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using SaaS.Application.Interfaces;
 
 namespace SaaS.API.Middlewares;
 
@@ -22,17 +23,21 @@ public class TenantAuthorizationMiddleware
             {
                 if (headerTenantId != claimTenantId)
                 {
+                    context.Response.ContentType = "application/problem+json";
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsJsonAsync(new
+
+                    await context.Response.WriteAsJsonAsync(new ProblemDetails
                     {
-                        status = 403,
-                        title = "Cross-tenant access denied.",
-                        detail = "The tenant specified in the header does not match your authenticated tenant claim."
+                        Status = StatusCodes.Status403Forbidden,
+                        Title = "Cross-tenant access denied.",
+                        Detail = "The tenant specified in the header does not match your authenticated tenant claim."
                     });
+
                     return;
                 }
             }
         }
+
         await _next(context);
     }
 }

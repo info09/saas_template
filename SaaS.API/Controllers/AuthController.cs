@@ -27,8 +27,12 @@ public class AuthController : ControllerBase
         var tenantId = _tenantService.GetCurrentTenantId();
         if (string.IsNullOrWhiteSpace(tenantId))
         {
-            return BadRequest(Result<LoginResponse>.Failure(
-                "Missing tenant context. Include the 'X-Tenant-Id' header when calling this endpoint."));
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Missing tenant context.",
+                Detail = "Include the 'X-Tenant-Id' header when calling this endpoint."
+            });
         }
 
         var command = new LoginCommand(request.Email, request.Password, tenantId);

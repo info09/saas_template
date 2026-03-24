@@ -1,6 +1,8 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using SaaS.Application.Common.Behaviors;
+using SaaS.Application.Features.Tenants.Services;
+using SaaS.Application.Interfaces;
 using System.Reflection;
 
 namespace SaaS.Application;
@@ -18,6 +20,7 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
+        services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
 
         return services;
     }

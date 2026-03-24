@@ -1,28 +1,29 @@
-﻿using SaaS.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using SaaS.Application.Interfaces;
 using SaaS.Domain.Entities;
 using SaaS.Infrastructure.Persistence;
 
-namespace SaaS.Infrastructure.Repositories
+namespace SaaS.Infrastructure.Repositories;
+
+public class TenantRepository : ITenantRepository
 {
-    public class TenantRepository : ITenantRepository
+    private readonly MasterDbContext _context;
+
+    public TenantRepository(MasterDbContext context)
     {
-        private readonly MasterDbContext _context;
+        _context = context;
+    }
 
-        public TenantRepository(MasterDbContext context)
-        {
-            _context = context;
-        }
-        public async Task<Tenant> CreateTenantAsync(Tenant tenant, CancellationToken cancellationToken)
-        {
-            _context.Tenants.Add(tenant);
-            await _context.SaveChangesAsync(cancellationToken);
-            return tenant;
-        }
+    public async Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken)
+    {
+        var normalizedName = name.Trim().ToLower();
+        return await _context.Tenants.AnyAsync(tenant => tenant.Name.ToLower() == normalizedName, cancellationToken);
+    }
 
-        public IQueryable<Tenant> Queryable()
-        {
-            var query = _context.Tenants.AsQueryable();
-            return query;
-        }
+    public async Task<Tenant> CreateTenantAsync(Tenant tenant, CancellationToken cancellationToken)
+    {
+        _context.Tenants.Add(tenant);
+        await _context.SaveChangesAsync(cancellationToken);
+        return tenant;
     }
 }

@@ -4,6 +4,6 @@ namespace SaaS.Application.Interfaces;
 
 public interface ITenantRepository
 {
-    IQueryable<Tenant> Queryable();
+    Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken);
     Task<Tenant> CreateTenantAsync(Tenant tenant, CancellationToken cancellationToken);
 }

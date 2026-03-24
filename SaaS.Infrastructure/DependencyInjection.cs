@@ -50,6 +50,8 @@ public static class DependencyInjection
 
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
         services.AddScoped<ITenantRepository, TenantRepository>();
+        services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddScoped<ITenantUnitOfWork, TenantUnitOfWork>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IIdentityService, IdentityService>();

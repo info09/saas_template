@@ -10,21 +10,21 @@ namespace SaaS.Infrastructure.Services;
 
 public class TenantProvisioningService : ITenantProvisioningService
 {
-    private readonly MasterDbContext _catalogDb;
+    private readonly MasterDbContext _masterDb;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEncryptionService _encryptionService;
 
-    public TenantProvisioningService(MasterDbContext catalogDb, IServiceProvider serviceProvider, IEncryptionService encryptionService)
+    public TenantProvisioningService(MasterDbContext masterDb, IServiceProvider serviceProvider, IEncryptionService encryptionService)
     {
-        _catalogDb = catalogDb;
+        _masterDb = masterDb;
         _serviceProvider = serviceProvider;
         _encryptionService = encryptionService;
     }
 
     public async Task ProvisionTenantAsync(Tenant tenant, string adminEmail, string adminPassword, CancellationToken cancellationToken)
     {
-        var catalogConnString = _catalogDb.Database.GetDbConnection().ConnectionString;
-        var builder = new NpgsqlConnectionStringBuilder(catalogConnString);
+        var conn = _masterDb.Database.GetDbConnection();
+        var builder = new NpgsqlConnectionStringBuilder(conn.ConnectionString);
 
         var dbName = $"SaaS_Tenant_{tenant.Id}";
         builder.Database = dbName;

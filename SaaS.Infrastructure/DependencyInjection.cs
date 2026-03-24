@@ -25,7 +25,15 @@ public static class DependencyInjection
         });
 
         // 3. Add Identity using TenantDbContext
-        services.AddIdentity<AppUser, IdentityRole>()
+        services.AddIdentityCore<AppUser>(options =>
+        {
+            options.Password.RequireDigit = false;
+            options.Password.RequiredLength = 6;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+        })
+            .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<TenantDbContext>()
             .AddDefaultTokenProviders();
 
@@ -37,6 +45,7 @@ public static class DependencyInjection
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IIdentityService, IdentityService>();
         services.AddSingleton<IEncryptionService, EncryptionService>();
 
 

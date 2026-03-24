@@ -18,5 +18,11 @@ namespace SaaS.Infrastructure.Repositories
             await _context.SaveChangesAsync(cancellationToken);
             return tenant;
         }
+
+        public IQueryable<Tenant> Queryable()
+        {
+            var query = _context.Tenants.AsQueryable();
+            return query;
+        }
     }
 }

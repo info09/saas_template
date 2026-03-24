@@ -55,10 +55,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<SaaS.API.Common.Filters.ApiResponseFilter>();
-});
+//builder.Services.AddControllers(options =>
+//{
+//    options.Filters.Add<SaaS.API.Common.Filters.ApiResponseFilter>();
+//});
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

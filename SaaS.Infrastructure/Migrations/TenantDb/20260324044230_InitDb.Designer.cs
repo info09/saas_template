@@ -12,7 +12,7 @@ using SaaS.Infrastructure.Persistence;
 namespace SaaS.Infrastructure.Migrations.TenantDb
 {
     [DbContext(typeof(TenantDbContext))]
-    [Migration("20260324032223_InitDb")]
+    [Migration("20260324044230_InitDb")]
     partial class InitDb
     {
         /// <inheritdoc />

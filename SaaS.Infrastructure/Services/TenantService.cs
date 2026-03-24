@@ -9,17 +9,20 @@ public class TenantService : ITenantService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IEncryptionService _encryptionService;
     private string? _currentTenantId;
     private string? _connectionString;
 
     public TenantService(
         IHttpContextAccessor httpContextAccessor,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        IEncryptionService encryptionService)
     {
         _httpContextAccessor = httpContextAccessor;
         _serviceProvider = serviceProvider;
-        
+
         ResolveTenant();
+        _encryptionService = encryptionService;
     }
 
     public string? GetCurrentTenantId() => _currentTenantId;
@@ -35,19 +38,28 @@ public class TenantService : ITenantService
         if (httpContext.Request.Headers.TryGetValue("X-Tenant-Id", out var tenantIdValues))
         {
             _currentTenantId = tenantIdValues.FirstOrDefault();
-            
+
             if (!string.IsNullOrEmpty(_currentTenantId))
             {
                 // We use a new scope to resolve CatalogDbContext to avoid circular dependency
                 using var scope = _serviceProvider.CreateScope();
                 var catalogDb = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
-                
+
                 var tenant = catalogDb.Tenants.FirstOrDefault(t => t.Id == _currentTenantId && t.IsActive);
                 if (tenant != null)
                 {
-                    _connectionString = tenant.ConnectionString;
+                    _connectionString = _encryptionService.Decrypt(tenant.ConnectionString);
+                }
+                else
+                {
+                    // Tenant not found in Catalog DB
+                    System.Diagnostics.Debug.WriteLine($"TenantService: Tenant '{_currentTenantId}' not found or inactive.");
                 }
             }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("TenantService: Missing 'X-Tenant-Id' header in request.");
         }
     }
 }

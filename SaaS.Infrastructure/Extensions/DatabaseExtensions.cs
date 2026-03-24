@@ -33,9 +33,8 @@ public static class DatabaseExtensions
                 var optionsBuilder = new DbContextOptionsBuilder<TenantDbContext>();
                 optionsBuilder.UseNpgsql(decryptedConn);
 
-                // 3. Create context instance
-                // Note: We provide a dummy ITenantService because we are overriding the connection string via 'options'
-                using var tenantContext = new TenantDbContext(optionsBuilder.Options, new DesignTimeTenantService());
+                // 3. Create context instance with the tenant-specific connection already configured
+                using var tenantContext = new TenantDbContext(optionsBuilder.Options);
 
                 // 4. Run migrations
                 await tenantContext.Database.MigrateAsync();

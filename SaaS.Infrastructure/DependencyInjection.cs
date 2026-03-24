@@ -14,17 +14,28 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // 1. Add Catalog DbContext (Master DB)
         services.AddDbContext<MasterDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("CatalogConnection")));
+            options.UseNpgsql(configuration.GetConnectionString("MasterConnection")));
 
-        // 2. Add Tenant DbContext (Tenant-specific DB)
-        services.AddDbContext<TenantDbContext>(options =>
+        services.AddHttpContextAccessor();
+        services.AddSingleton<IEncryptionService, EncryptionService>();
+        services.AddScoped<ITenantService, TenantService>();
+
+        services.AddDbContext<TenantDbContext>((serviceProvider, options) =>
         {
-            // Connection is set dynamically inside the DbContext using ITenantService
+            var tenantService = serviceProvider.GetRequiredService<ITenantService>();
+            var tenantConnectionString = tenantService.GetConnectionString();
+
+            if (string.IsNullOrWhiteSpace(tenantConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "Tenant connection string could not be resolved. Ensure the 'X-Tenant-Id' header is present and the tenant exists in the Master Database.");
+            }
+
+            options.UseNpgsql(tenantConnectionString, npgsqlOptions =>
+                npgsqlOptions.EnableRetryOnFailure());
         });
 
-        // 3. Add Identity using TenantDbContext
         services.AddIdentityCore<AppUser>(options =>
         {
             options.Password.RequireDigit = false;
@@ -37,18 +48,11 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<TenantDbContext>()
             .AddDefaultTokenProviders();
 
-        // 4. Register Tenant Service
-        services.AddHttpContextAccessor();
-        services.AddScoped<ITenantService, TenantService>();
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
         services.AddScoped<ITenantRepository, TenantRepository>();
-
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
-        services.AddSingleton<IEncryptionService, EncryptionService>();
-
-
 
         return services;
     }

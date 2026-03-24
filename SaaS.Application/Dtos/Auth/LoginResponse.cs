@@ -1,3 +1,3 @@
 ﻿namespace SaaS.Application.Dtos.Auth;
 
-public record LoginResponse(bool Succeeded, string Token, IEnumerable<string>? Errors);
+public record LoginResponse(string Token);

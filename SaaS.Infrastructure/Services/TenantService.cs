@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using SaaS.Application.Interfaces;
 using SaaS.Infrastructure.Persistence;
 
@@ -8,58 +7,58 @@ namespace SaaS.Infrastructure.Services;
 public class TenantService : ITenantService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly MasterDbContext _masterDbContext;
     private readonly IEncryptionService _encryptionService;
     private string? _currentTenantId;
     private string? _connectionString;
+    private bool _isResolved;
 
     public TenantService(
         IHttpContextAccessor httpContextAccessor,
-        IServiceProvider serviceProvider,
+        MasterDbContext masterDbContext,
         IEncryptionService encryptionService)
     {
         _httpContextAccessor = httpContextAccessor;
-        _serviceProvider = serviceProvider;
-
-        ResolveTenant();
+        _masterDbContext = masterDbContext;
         _encryptionService = encryptionService;
     }
 
-    public string? GetCurrentTenantId() => _currentTenantId;
-
-    public string? GetConnectionString() => _connectionString;
-
-    private void ResolveTenant()
+    public string? GetCurrentTenantId()
     {
+        EnsureResolved();
+        return _currentTenantId;
+    }
+
+    public string? GetConnectionString()
+    {
+        EnsureResolved();
+        return _connectionString;
+    }
+
+    private void EnsureResolved()
+    {
+        if (_isResolved)
+        {
+            return;
+        }
+
+        _isResolved = true;
+
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext == null) return;
 
-        // Extract tenant ID from header
         if (httpContext.Request.Headers.TryGetValue("X-Tenant-Id", out var tenantIdValues))
         {
             _currentTenantId = tenantIdValues.FirstOrDefault();
 
             if (!string.IsNullOrEmpty(_currentTenantId))
             {
-                // We use a new scope to resolve CatalogDbContext to avoid circular dependency
-                using var scope = _serviceProvider.CreateScope();
-                var catalogDb = scope.ServiceProvider.GetRequiredService<MasterDbContext>();
-
-                var tenant = catalogDb.Tenants.FirstOrDefault(t => t.Id == _currentTenantId && t.IsActive);
+                var tenant = _masterDbContext.Tenants.FirstOrDefault(t => t.Id == _currentTenantId && t.IsActive);
                 if (tenant != null)
                 {
                     _connectionString = _encryptionService.Decrypt(tenant.ConnectionString);
                 }
-                else
-                {
-                    // Tenant not found in Catalog DB
-                    System.Diagnostics.Debug.WriteLine($"TenantService: Tenant '{_currentTenantId}' not found or inactive.");
-                }
             }
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine("TenantService: Missing 'X-Tenant-Id' header in request.");
         }
     }
 }

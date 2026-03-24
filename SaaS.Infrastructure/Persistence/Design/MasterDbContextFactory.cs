@@ -20,7 +20,7 @@ namespace SaaS.Infrastructure.Persistence.Design
                     .AddEnvironmentVariables()
                     .Build();
 
-                var connectionString = configuration.GetConnectionString("CatalogConnection")
+                var connectionString = configuration.GetConnectionString("MasterConnection")
                     ?? "Host=localhost;Database=SaaS_MasterDb;Username=postgres;Password=your_password";
 
                 optionsBuilder.UseNpgsql(connectionString);

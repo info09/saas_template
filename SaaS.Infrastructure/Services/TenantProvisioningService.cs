@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Npgsql;
 using SaaS.Application.Interfaces;
 using SaaS.Domain.Entities;
@@ -11,23 +12,27 @@ namespace SaaS.Infrastructure.Services;
 public class TenantProvisioningService : ITenantProvisioningService
 {
     private readonly MasterDbContext _masterDb;
-    private readonly IServiceProvider _serviceProvider;
     private readonly IEncryptionService _encryptionService;
+    private readonly IConfiguration _configuration;
 
-    public TenantProvisioningService(MasterDbContext masterDb, IServiceProvider serviceProvider, IEncryptionService encryptionService)
+    public TenantProvisioningService(MasterDbContext masterDb, IEncryptionService encryptionService, IConfiguration configuration)
     {
         _masterDb = masterDb;
-        _serviceProvider = serviceProvider;
         _encryptionService = encryptionService;
+        _configuration = configuration;
     }
 
     public async Task ProvisionTenantAsync(Tenant tenant, string adminEmail, string adminPassword, CancellationToken cancellationToken)
     {
-        var conn = _masterDb.Database.GetDbConnection();
-        var builder = new NpgsqlConnectionStringBuilder(conn.ConnectionString);
+        //var conn = _masterDb.Database.GetDbConnection();
+        //var builder = new NpgsqlConnectionStringBuilder(conn.ConnectionString);
 
-        var dbName = $"SaaS_Tenant_{tenant.Id}";
-        builder.Database = dbName;
+        var masterConnectionString = _configuration.GetConnectionString("MasterConnection") ?? throw new InvalidOperationException("Missing catalog connection string.");
+
+        var builder = new NpgsqlConnectionStringBuilder(masterConnectionString)
+        {
+            Database = $"SaaS_Tenant_{tenant.Id}"
+        };
 
         var rawConnectionString = builder.ToString();
         tenant.ConnectionString = _encryptionService.Encrypt(rawConnectionString);
@@ -35,9 +40,7 @@ public class TenantProvisioningService : ITenantProvisioningService
         var optionsBuilder = new DbContextOptionsBuilder<TenantDbContext>();
         optionsBuilder.UseNpgsql(rawConnectionString);
 
-        var dummyTenantService = new DummyProvisioningTenantService(tenant.Id, tenant.ConnectionString);
-
-        using var context = new TenantDbContext(optionsBuilder.Options, dummyTenantService);
+        using var context = new TenantDbContext(optionsBuilder.Options);
 
         await context.Database.MigrateAsync(cancellationToken);
 
@@ -71,19 +74,4 @@ public class TenantProvisioningService : ITenantProvisioningService
 
         await context.SaveChangesAsync(ct);
     }
-}
-
-public class DummyProvisioningTenantService : ITenantService
-{
-    private readonly string _tenantId;
-    private readonly string _connectionString;
-
-    public DummyProvisioningTenantService(string tenantId, string connectionString)
-    {
-        _tenantId = tenantId;
-        _connectionString = connectionString;
-    }
-
-    public string? GetCurrentTenantId() => _tenantId;
-    public string? GetConnectionString() => _connectionString;
 }

@@ -27,7 +27,7 @@ namespace SaaS.Application.Features.Auth.Login
 
             var token = _tokenService.GenerateJwtToken(userId, request.Email, request.TenantId);
 
-            return Result<LoginResponse>.Success(new LoginResponse(true, token, null));
+            return Result<LoginResponse>.Success(new LoginResponse(token));
         }
     }
 }

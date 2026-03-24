@@ -22,6 +22,9 @@ public class TenantController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Result<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Result<string>>> CreateTenant([FromBody] CreateTenantRequest request)
     {
         // This endpoint is for demonstration. In a real app, tenant creation would likely be an admin-only operation.

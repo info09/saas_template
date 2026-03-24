@@ -38,7 +38,7 @@ Mở terminal ở thư mục gốc `SaaS.Template` và chạy:
 
 **A. Migration cho Master Catalog (Lưu danh sách khách hàng):**
 ```bash
-dotnet ef migrations add InitialCatalog -c CatalogDbContext -o Persistence/Migrations/Catalog -p SaaS.Infrastructure -s SaaS.API
+dotnet ef migrations add InitialCatalog -c MasterDbContext -o Migrations -p SaaS.Infrastructure -s SaaS.API
 ```
 
 **B. Migration cho Tenant (Lưu Dữ liệu Schema của mỗi khách hàng):**
@@ -59,7 +59,7 @@ dotnet run --project SaaS.API -- --migrate-all
 
 1. Khách hàng B tạo yêu cầu tới API: `GET /api/tenant/current`.
 2. Khách hàng B gửi kèm HTTP Header: `X-Tenant-Id: tenant_b`.
-3. Middleware `TenantResolutionMiddleware.cs` đọc Header, tra cứu vào `CatalogDbContext` cấu hình chuỗi Connection String của `tenant_b`.
+3. Middleware `TenantResolutionMiddleware.cs` đọc Header, tra cứu vào `MasterDbContext` để tìm chuỗi Connection String của `tenant_b`.
 4. Mọi query thông qua `TenantDbContext` trong request đó sẽ đi vào CSDL của `tenant_b`.
 
 ---
@@ -112,11 +112,27 @@ public class ProductController : ControllerBase {
 
 ## 6. Gọi lệnh chạy thử API
 ```bash
-cd SaaS.API
-dotnet run
+dotnet run --project SaaS.API
 ```
 Mở đường dẫn `https://localhost:XXXX/swagger` trên trình duyệt để coi danh sách API.
 
 **Cách test Tenant trên Swagger/Postman**:
 - Chèn parameter Key là `X-Tenant-Id` vào Header, Value ví dụ: `khachhang_01`.
 - Chèn parameter Key là `Authorization` vào Header, Value `Bearer eyJ...` (nếu route đó yêu cầu đăng nhập).
+
+**Cách gọi login hiện tại**:
+```http
+POST /api/auth/login
+X-Tenant-Id: khachhang_01
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "123456"
+}
+```
+
+**Quy ước response**:
+- Thành công: trả `Result<T>`.
+- Lỗi validation: trả `ValidationProblemDetails`.
+- Lỗi nghiệp vụ, auth, tenant: trả `ProblemDetails`.

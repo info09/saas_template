@@ -51,6 +51,22 @@ public class IdentityService : IIdentityService
         return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
     }
 
+    public async Task<UserProfileResponse?> GetProfileAsync(string userId, string tenantId)
+    {
+        var user = await _userManager.Users
+            .Where(user => user.Id == userId)
+            .Select(user => new UserProfileResponse(
+                user.Id,
+                user.Email ?? user.UserName ?? string.Empty,
+                user.FirstName,
+                user.LastName,
+                tenantId,
+                user.TokenVersion))
+            .FirstOrDefaultAsync();
+
+        return user;
+    }
+
     public async Task<Result> SetRefreshTokenAsync(string userId, string refreshToken, DateTime expiresAtUtc)
     {
         var user = await _userManager.FindByIdAsync(userId);

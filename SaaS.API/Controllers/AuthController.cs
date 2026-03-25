@@ -8,6 +8,7 @@ using SaaS.Application.Features.Auth.Login;
 using SaaS.Application.Features.Auth.Logout;
 using SaaS.Application.Features.Auth.Profile;
 using SaaS.Application.Features.Auth.RefreshToken;
+using SaaS.Application.Features.Auth.Sessions;
 using SaaS.Application.Interfaces;
 
 namespace SaaS.API.Controllers;
@@ -69,6 +70,28 @@ public class AuthController : ControllerBase
         }
 
         var result = await _mediator.Send(new GetProfileQuery(_currentUserService.UserId, _currentUserService.TenantId));
+        return result.ToActionResult();
+    }
+
+    [Authorize]
+    [HttpGet("sessions")]
+    [ProducesResponseType(typeof(Result<IReadOnlyList<UserSessionResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<Result<IReadOnlyList<UserSessionResponse>>>> GetSessions()
+    {
+        if (string.IsNullOrWhiteSpace(_currentUserService.UserId))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Missing user context.",
+                Detail = "The authenticated user context could not be resolved from the current request."
+            });
+        }
+
+        var result = await _mediator.Send(new GetSessionsQuery(_currentUserService.UserId, _currentUserService.SessionId));
         return result.ToActionResult();
     }
 

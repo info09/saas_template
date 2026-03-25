@@ -86,6 +86,29 @@ public class IdentityService : IIdentityService
         return user;
     }
 
+    public async Task<IReadOnlyList<UserSessionResponse>> GetSessionsAsync(string userId, Guid? currentSessionId)
+    {
+        var now = DateTime.UtcNow;
+
+        return await _tenantDbContext.UserSessions
+            .AsNoTracking()
+            .Where(session => session.UserId == userId)
+            .OrderByDescending(session => session.CreatedAtUtc)
+            .Select(session => new UserSessionResponse(
+                session.Id,
+                session.CreatedAtUtc,
+                session.ExpiresAtUtc,
+                session.LastSeenAtUtc,
+                session.RevokedAtUtc,
+                session.CreatedByIp,
+                session.LastSeenIp,
+                session.UserAgent,
+                session.DeviceName,
+                currentSessionId.HasValue && session.Id == currentSessionId.Value,
+                session.RevokedAtUtc == null && session.ExpiresAtUtc > now))
+            .ToListAsync();
+    }
+
     public async Task<(Result Result, Guid? SessionId)> CreateSessionAsync(string userId, string refreshToken, DateTime expiresAtUtc)
     {
         var user = await _userManager.FindByIdAsync(userId);

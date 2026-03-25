@@ -143,7 +143,23 @@ Content-Type: application/json
 }
 ```
 
+**Cách gọi logout**:
+```http
+POST /api/auth/logout
+X-Tenant-Id: khachhang_01
+Content-Type: application/json
+
+{
+  "refreshToken": "..."
+}
+```
+
 **Quy ước response**:
 - Thành công: trả `Result<T>`.
 - Lỗi validation: trả `ValidationProblemDetails`.
 - Lỗi nghiệp vụ, auth, tenant: trả `ProblemDetails`.
+
+**Lưu ý về bảo mật token**:
+- Access token mang claim `tokenVersion`.
+- Redis lưu `tokenVersion` hiện tại của từng user theo tenant.
+- Khi logout, hệ thống tăng `TokenVersion` trong DB và cache, nên access token cũ sẽ bị từ chối ở request tiếp theo.

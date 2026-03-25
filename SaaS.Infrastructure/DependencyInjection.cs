@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<ITenantUnitOfWork, TenantUnitOfWork>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<ITokenVersionCacheService, TokenVersionCacheService>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<DatabaseMigrationService>();
 

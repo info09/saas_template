@@ -38,6 +38,11 @@ builder.Services.AddCors(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddProblemDetails();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+    options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "saas:";
+});
 
 // Add JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -181,6 +186,7 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<TenantResolutionMiddleware>();
 
 app.UseAuthentication();
+app.UseMiddleware<TokenVersionValidationMiddleware>();
 app.UseMiddleware<TenantAuthorizationMiddleware>();
 app.UseAuthorization();
 

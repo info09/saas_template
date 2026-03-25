@@ -17,5 +17,14 @@ public class CurrentUserService : ICurrentUserService
 
     public string? TenantId => _httpContextAccessor.HttpContext?.User?.FindFirst("tenantId")?.Value;
 
+    public int? TokenVersion
+    {
+        get
+        {
+            var claimValue = _httpContextAccessor.HttpContext?.User?.FindFirst("tokenVersion")?.Value;
+            return int.TryParse(claimValue, out var tokenVersion) ? tokenVersion : null;
+        }
+    }
+
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 }

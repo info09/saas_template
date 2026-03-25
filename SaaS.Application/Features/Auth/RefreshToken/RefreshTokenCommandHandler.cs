@@ -9,11 +9,13 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 {
     private readonly IIdentityService _identityService;
     private readonly ITokenService _tokenService;
+    private readonly ITokenVersionCacheService _tokenVersionCacheService;
 
-    public RefreshTokenCommandHandler(IIdentityService identityService, ITokenService tokenService)
+    public RefreshTokenCommandHandler(IIdentityService identityService, ITokenService tokenService, ITokenVersionCacheService tokenVersionCacheService)
     {
         _identityService = identityService;
         _tokenService = tokenService;
+        _tokenVersionCacheService = tokenVersionCacheService;
     }
 
     public async Task<Result<LoginResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
@@ -26,7 +28,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 
         var accessTokenExpiresAtUtc = _tokenService.GetAccessTokenExpiresAtUtc();
         var refreshTokenExpiresAtUtc = _tokenService.GetRefreshTokenExpiresAtUtc();
-        var accessToken = _tokenService.GenerateJwtToken(user.UserId, user.Email, request.TenantId);
+        var accessToken = _tokenService.GenerateJwtToken(user.UserId, user.Email, request.TenantId, user.TokenVersion);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
         var saveRefreshTokenResult = await _identityService.SetRefreshTokenAsync(
@@ -38,6 +40,12 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         {
             return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors ?? ["Unable to persist refresh token."]);
         }
+
+        await _tokenVersionCacheService.SetTokenVersionAsync(
+            request.TenantId,
+            user.UserId,
+            user.TokenVersion,
+            cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse(
             accessToken,

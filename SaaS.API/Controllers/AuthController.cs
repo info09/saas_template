@@ -4,6 +4,7 @@ using SaaS.API.Extensions;
 using SaaS.Application.Common.Models;
 using SaaS.Application.Dtos.Auth;
 using SaaS.Application.Features.Auth.Login;
+using SaaS.Application.Features.Auth.Logout;
 using SaaS.Application.Features.Auth.RefreshToken;
 using SaaS.Application.Interfaces;
 
@@ -64,6 +65,29 @@ public class AuthController : ControllerBase
         }
 
         var command = new RefreshTokenCommand(request.RefreshToken, tenantId);
+        var result = await _mediator.Send(command);
+        return result.ToActionResult();
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> Logout([FromBody] LogoutRequest request)
+    {
+        var tenantId = _tenantService.GetCurrentTenantId();
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Missing tenant context.",
+                Detail = "Include the 'X-Tenant-Id' header when calling this endpoint."
+            });
+        }
+
+        var command = new LogoutCommand(request.RefreshToken, tenantId);
         var result = await _mediator.Send(command);
         return result.ToActionResult();
     }

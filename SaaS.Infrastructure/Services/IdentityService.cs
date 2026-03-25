@@ -32,7 +32,7 @@ public class IdentityService : IIdentityService
             return (Result.Failure("Invalid credentials."), null);
         }
 
-        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? email));
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? email, user.TokenVersion));
     }
 
     public async Task<(Result Result, AuthUserInfo? User)> GetByRefreshTokenAsync(string refreshToken)
@@ -48,7 +48,7 @@ public class IdentityService : IIdentityService
             return (Result.Failure("Invalid or expired refresh token."), null);
         }
 
-        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty));
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
     }
 
     public async Task<Result> SetRefreshTokenAsync(string userId, string refreshToken, DateTime expiresAtUtc)
@@ -69,6 +69,35 @@ public class IdentityService : IIdentityService
         }
 
         return Result.Success();
+    }
+
+    public async Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string refreshToken)
+    {
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(user => user.RefreshToken == refreshToken);
+
+        if (user == null)
+        {
+            return (Result.Failure("Invalid refresh token."), null);
+        }
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiresAtUtc = null;
+        user.TokenVersion += 1;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return (Result.Failure(updateResult.Errors.Select(error => error.Description).ToArray()), null);
+        }
+
+        return (Result.Success("Logged out successfully."), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
+    }
+
+    public async Task<int?> GetTokenVersionAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        return user?.TokenVersion;
     }
 
     public async Task<Result> CreateUserAsync(string email, string password, string firstName, string lastName)

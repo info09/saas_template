@@ -17,7 +17,7 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    public string GenerateJwtToken(string userId, string email, string tenantId)
+    public string GenerateJwtToken(string userId, string email, string tenantId, int tokenVersion)
     {
         var expiresAtUtc = GetAccessTokenExpiresAtUtc();
         var claims = new List<Claim>
@@ -27,7 +27,8 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Email, email),
-            new Claim("tenantId", tenantId)
+            new Claim("tenantId", tenantId),
+            new Claim("tokenVersion", tokenVersion.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "superSecretKey12345678901234567890"));

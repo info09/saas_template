@@ -186,6 +186,31 @@ public class IdentityService : IIdentityService
         return (Result.Success("Logged out successfully."), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
     }
 
+    public async Task<Result> RevokeSessionAsync(string userId, Guid sessionId)
+    {
+        var session = await _tenantDbContext.UserSessions
+            .FirstOrDefaultAsync(userSession => userSession.Id == sessionId && userSession.UserId == userId);
+
+        if (session == null)
+        {
+            return Result.Failure("Session not found.");
+        }
+
+        if (session.RevokedAtUtc.HasValue)
+        {
+            return Result.Success("Session already revoked.");
+        }
+
+        session.RevokedAtUtc = DateTime.UtcNow;
+        session.LastSeenAtUtc = DateTime.UtcNow;
+        session.LastSeenIp = GetRemoteIpAddress();
+        session.UserAgent = GetUserAgent();
+
+        await _tenantDbContext.SaveChangesAsync();
+
+        return Result.Success("Session revoked successfully.");
+    }
+
     public async Task<int?> GetTokenVersionAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);

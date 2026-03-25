@@ -38,6 +38,10 @@ Migration commands are now explicit and no longer run automatically during API s
 - `dotnet run --project SaaS.API -- --migrate-tenants`
 - `dotnet run --project SaaS.API -- --migrate-all`
 
+Health endpoints:
+- `GET /health`
+- `GET /health/ready`
+
 ## API Contract Notes
 - `POST /api/auth/login` expects only `email` and `password` in the request body.
 - `POST /api/auth/refresh` expects `refreshToken` in the request body.

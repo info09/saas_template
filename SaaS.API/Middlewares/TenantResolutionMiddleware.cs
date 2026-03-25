@@ -13,6 +13,12 @@ public class TenantResolutionMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantService tenantService)
     {
+        if (IsHealthEndpoint(context.Request.Path))
+        {
+            await _next(context);
+            return;
+        }
+
         // TenantService is Scoped, resolving tenant for the current request context
         var tenantId = tenantService.GetCurrentTenantId();
 
@@ -27,5 +33,10 @@ public class TenantResolutionMiddleware
         }
 
         await _next(context);
+    }
+
+    private static bool IsHealthEndpoint(PathString path)
+    {
+        return path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
     }
 }

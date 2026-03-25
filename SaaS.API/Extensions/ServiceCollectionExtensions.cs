@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SaaS.API.Infrastructure.Swagger;
@@ -23,9 +22,23 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(TokenVersionValidationOptions.SectionName));
         services.AddConfiguredRedis(configuration);
         services.AddConfiguredAuthentication(configuration);
+        services.AddConfiguredHealthChecks(configuration);
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddConfiguredSwagger();
+
+        return services;
+    }
+
+    private static IServiceCollection AddConfiguredHealthChecks(this IServiceCollection services, IConfiguration configuration)
+    {
+        var masterConnectionString = configuration.GetConnectionString("MasterConnection")
+            ?? throw new InvalidOperationException("Missing master connection string.");
+        var redisConnectionString = configuration["Redis:ConnectionString"] ?? "localhost:6379";
+
+        services.AddHealthChecks()
+            .AddNpgSql(masterConnectionString, name: "postgres")
+            .AddRedis(redisConnectionString, name: "redis");
 
         return services;
     }

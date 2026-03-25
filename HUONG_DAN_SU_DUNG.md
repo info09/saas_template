@@ -120,6 +120,13 @@ Mở đường dẫn `https://localhost:XXXX/swagger` trên trình duyệt để
 - Chèn parameter Key là `X-Tenant-Id` vào Header, Value ví dụ: `khachhang_01`.
 - Chèn parameter Key là `Authorization` vào Header, Value `Bearer eyJ...` (nếu route đó yêu cầu đăng nhập).
 
+**Health checks**:
+```http
+GET /health
+GET /health/ready
+```
+Hai endpoint này dùng để kiểm tra trạng thái PostgreSQL và Redis.
+
 **Cách gọi login hiện tại**:
 ```http
 POST /api/auth/login

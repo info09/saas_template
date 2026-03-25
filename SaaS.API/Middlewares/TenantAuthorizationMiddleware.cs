@@ -14,6 +14,12 @@ public class TenantAuthorizationMiddleware
 
     public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, ITenantService tenantService)
     {
+        if (IsHealthEndpoint(context.Request.Path))
+        {
+            await _next(context);
+            return;
+        }
+
         if (currentUserService.IsAuthenticated)
         {
             var headerTenantId = tenantService.GetCurrentTenantId();
@@ -39,5 +45,10 @@ public class TenantAuthorizationMiddleware
         }
 
         await _next(context);
+    }
+
+    private static bool IsHealthEndpoint(PathString path)
+    {
+        return path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
     }
 }

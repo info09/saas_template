@@ -23,15 +23,22 @@ public class TokenVersionValidationMiddleware
 
     public async Task InvokeAsync(
         HttpContext context,
-        ICurrentUserService currentUserService,
-        ITokenVersionCacheService tokenVersionCacheService,
-        IIdentityService identityService)
+        ICurrentUserService currentUserService)
     {
+        if (IsHealthEndpoint(context.Request.Path))
+        {
+            await _next(context);
+            return;
+        }
+
         if (!currentUserService.IsAuthenticated)
         {
             await _next(context);
             return;
         }
+
+        var tokenVersionCacheService = context.RequestServices.GetRequiredService<ITokenVersionCacheService>();
+        var identityService = context.RequestServices.GetRequiredService<IIdentityService>();
 
         if (string.IsNullOrWhiteSpace(currentUserService.UserId) ||
             string.IsNullOrWhiteSpace(currentUserService.TenantId) ||
@@ -147,6 +154,11 @@ public class TokenVersionValidationMiddleware
         }
 
         await _next(context);
+    }
+
+    private static bool IsHealthEndpoint(PathString path)
+    {
+        return path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task WriteUnauthorizedAsync(HttpContext context, string detail)

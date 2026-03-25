@@ -23,6 +23,8 @@ public static class WebApplicationExtensions
         app.UseMiddleware<TenantAuthorizationMiddleware>();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health/ready");
 
         return app;
     }

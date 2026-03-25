@@ -211,6 +211,34 @@ public class IdentityService : IIdentityService
         return Result.Success("Session revoked successfully.");
     }
 
+    public async Task<Result> RevokeAllSessionsAsync(string userId)
+    {
+        var sessions = await _tenantDbContext.UserSessions
+            .Where(userSession => userSession.UserId == userId && userSession.RevokedAtUtc == null)
+            .ToListAsync();
+
+        if (sessions.Count == 0)
+        {
+            return Result.Success("No active sessions found.");
+        }
+
+        var now = DateTime.UtcNow;
+        var remoteIpAddress = GetRemoteIpAddress();
+        var userAgent = GetUserAgent();
+
+        foreach (var session in sessions)
+        {
+            session.RevokedAtUtc = now;
+            session.LastSeenAtUtc = now;
+            session.LastSeenIp = remoteIpAddress;
+            session.UserAgent = userAgent;
+        }
+
+        await _tenantDbContext.SaveChangesAsync();
+
+        return Result.Success("All sessions revoked successfully.");
+    }
+
     public async Task<int?> GetTokenVersionAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);

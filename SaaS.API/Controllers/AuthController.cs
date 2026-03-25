@@ -6,6 +6,7 @@ using SaaS.Application.Common.Models;
 using SaaS.Application.Dtos.Auth;
 using SaaS.Application.Features.Auth.Login;
 using SaaS.Application.Features.Auth.Logout;
+using SaaS.Application.Features.Auth.LogoutAll;
 using SaaS.Application.Features.Auth.LogoutSession;
 using SaaS.Application.Features.Auth.Profile;
 using SaaS.Application.Features.Auth.RefreshToken;
@@ -161,6 +162,29 @@ public class AuthController : ControllerBase
         }
 
         var command = new LogoutSessionCommand(_currentUserService.UserId, request.SessionId);
+        var result = await _mediator.Send(command);
+        return result.ToActionResult();
+    }
+
+    [Authorize]
+    [HttpPost("logout-all")]
+    [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> LogoutAll()
+    {
+        if (string.IsNullOrWhiteSpace(_currentUserService.UserId))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Missing user context.",
+                Detail = "The authenticated user context could not be resolved from the current request."
+            });
+        }
+
+        var command = new LogoutAllCommand(_currentUserService.UserId);
         var result = await _mediator.Send(command);
         return result.ToActionResult();
     }

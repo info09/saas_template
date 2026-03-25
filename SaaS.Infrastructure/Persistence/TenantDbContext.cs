@@ -9,6 +9,8 @@ namespace SaaS.Infrastructure.Persistence;
 /// </summary>
 public class TenantDbContext : IdentityDbContext<AppUser>
 {
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+
     public TenantDbContext(DbContextOptions<TenantDbContext> options) : base(options)
     {
     }

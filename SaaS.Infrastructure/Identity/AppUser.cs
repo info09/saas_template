@@ -9,4 +9,5 @@ public class AppUser : IdentityUser
     public int TokenVersion { get; set; }
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiresAtUtc { get; set; }
+    public ICollection<UserSession> Sessions { get; set; } = new List<UserSession>();
 }

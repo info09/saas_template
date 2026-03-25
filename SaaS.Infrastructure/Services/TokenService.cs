@@ -17,7 +17,7 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    public string GenerateJwtToken(string userId, string email, string tenantId, int tokenVersion)
+    public string GenerateJwtToken(string userId, string email, string tenantId, int tokenVersion, Guid sessionId)
     {
         var expiresAtUtc = GetAccessTokenExpiresAtUtc();
         var claims = new List<Claim>
@@ -28,6 +28,7 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Email, email),
             new Claim("tenantId", tenantId),
+            new Claim("sessionId", sessionId.ToString()),
             new Claim("tokenVersion", tokenVersion.ToString())
         };
 

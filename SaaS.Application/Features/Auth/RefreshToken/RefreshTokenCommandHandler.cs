@@ -26,13 +26,17 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             return Result<LoginResponse>.Failure(result.Errors ?? ["Invalid or expired refresh token."]);
         }
 
+        if (user.SessionId is null)
+        {
+            return Result<LoginResponse>.Failure("The refresh token is not associated with an active session.");
+        }
+
         var accessTokenExpiresAtUtc = _tokenService.GetAccessTokenExpiresAtUtc();
         var refreshTokenExpiresAtUtc = _tokenService.GetRefreshTokenExpiresAtUtc();
-        var accessToken = _tokenService.GenerateJwtToken(user.UserId, user.Email, request.TenantId, user.TokenVersion);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
-        var saveRefreshTokenResult = await _identityService.SetRefreshTokenAsync(
-            user.UserId,
+        var saveRefreshTokenResult = await _identityService.RotateRefreshTokenAsync(
+            request.RefreshToken,
             refreshToken,
             refreshTokenExpiresAtUtc);
 
@@ -40,6 +44,13 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         {
             return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors ?? ["Unable to persist refresh token."]);
         }
+
+        var accessToken = _tokenService.GenerateJwtToken(
+            user.UserId,
+            user.Email,
+            request.TenantId,
+            user.TokenVersion,
+            user.SessionId.Value);
 
         _ = await _tokenVersionCacheService.SetTokenVersionAsync(
             request.TenantId,

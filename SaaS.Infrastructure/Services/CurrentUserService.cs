@@ -17,6 +17,15 @@ public class CurrentUserService : ICurrentUserService
 
     public string? TenantId => _httpContextAccessor.HttpContext?.User?.FindFirst("tenantId")?.Value;
 
+    public Guid? SessionId
+    {
+        get
+        {
+            var claimValue = _httpContextAccessor.HttpContext?.User?.FindFirst("sessionId")?.Value;
+            return Guid.TryParse(claimValue, out var sessionId) ? sessionId : null;
+        }
+    }
+
     public int? TokenVersion
     {
         get

@@ -1,19 +1,30 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SaaS.Application.Common.Models;
 using SaaS.Application.Dtos.Auth;
 using SaaS.Application.Interfaces;
 using SaaS.Infrastructure.Identity;
+using SaaS.Infrastructure.Persistence;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SaaS.Infrastructure.Services;
 
 public class IdentityService : IIdentityService
 {
     private readonly UserManager<AppUser> _userManager;
+    private readonly TenantDbContext _tenantDbContext;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public IdentityService(UserManager<AppUser> userManager)
+    public IdentityService(
+        UserManager<AppUser> userManager,
+        TenantDbContext tenantDbContext,
+        IHttpContextAccessor httpContextAccessor)
     {
         _userManager = userManager;
+        _tenantDbContext = tenantDbContext;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<(Result Result, AuthUserInfo? User)> AuthenticateAsync(string email, string password)
@@ -37,18 +48,26 @@ public class IdentityService : IIdentityService
 
     public async Task<(Result Result, AuthUserInfo? User)> GetByRefreshTokenAsync(string refreshToken)
     {
-        var user = await _userManager.Users
-            .FirstOrDefaultAsync(user =>
-                user.RefreshToken == refreshToken &&
-                user.RefreshTokenExpiresAtUtc.HasValue &&
-                user.RefreshTokenExpiresAtUtc.Value > DateTime.UtcNow);
+        var refreshTokenHash = HashRefreshToken(refreshToken);
+        var session = await _tenantDbContext.UserSessions
+            .Include(userSession => userSession.User)
+            .FirstOrDefaultAsync(userSession =>
+                userSession.RefreshTokenHash == refreshTokenHash &&
+                userSession.RevokedAtUtc == null &&
+                userSession.ExpiresAtUtc > DateTime.UtcNow);
 
-        if (user == null)
+        if (session?.User == null)
         {
             return (Result.Failure("Invalid or expired refresh token."), null);
         }
 
-        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
+        session.LastSeenAtUtc = DateTime.UtcNow;
+        session.LastSeenIp = GetRemoteIpAddress();
+        session.UserAgent = GetUserAgent();
+        await _tenantDbContext.SaveChangesAsync();
+
+        var user = session.User;
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion, session.Id));
     }
 
     public async Task<UserProfileResponse?> GetProfileAsync(string userId, string tenantId)
@@ -67,45 +86,79 @@ public class IdentityService : IIdentityService
         return user;
     }
 
-    public async Task<Result> SetRefreshTokenAsync(string userId, string refreshToken, DateTime expiresAtUtc)
+    public async Task<(Result Result, Guid? SessionId)> CreateSessionAsync(string userId, string refreshToken, DateTime expiresAtUtc)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
         {
-            return Result.Failure("User not found.");
+            return (Result.Failure("User not found."), null);
         }
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiresAtUtc = expiresAtUtc;
-
-        var updateResult = await _userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
+        var session = new UserSession
         {
-            return Result.Failure(updateResult.Errors.Select(error => error.Description).ToArray());
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            RefreshTokenHash = HashRefreshToken(refreshToken),
+            CreatedAtUtc = DateTime.UtcNow,
+            ExpiresAtUtc = expiresAtUtc,
+            LastSeenAtUtc = DateTime.UtcNow,
+            CreatedByIp = GetRemoteIpAddress(),
+            LastSeenIp = GetRemoteIpAddress(),
+            UserAgent = GetUserAgent()
+        };
+
+        await _tenantDbContext.UserSessions.AddAsync(session);
+        await _tenantDbContext.SaveChangesAsync();
+
+        return (Result.Success(), session.Id);
+    }
+
+    public async Task<Result> RotateRefreshTokenAsync(string currentRefreshToken, string newRefreshToken, DateTime expiresAtUtc)
+    {
+        var currentRefreshTokenHash = HashRefreshToken(currentRefreshToken);
+        var session = await _tenantDbContext.UserSessions
+            .FirstOrDefaultAsync(userSession =>
+                userSession.RefreshTokenHash == currentRefreshTokenHash &&
+                userSession.RevokedAtUtc == null &&
+                userSession.ExpiresAtUtc > DateTime.UtcNow);
+
+        if (session == null)
+        {
+            return Result.Failure("Invalid or expired refresh token.");
         }
+
+        session.RefreshTokenHash = HashRefreshToken(newRefreshToken);
+        session.ExpiresAtUtc = expiresAtUtc;
+        session.LastSeenAtUtc = DateTime.UtcNow;
+        session.LastSeenIp = GetRemoteIpAddress();
+        session.UserAgent = GetUserAgent();
+
+        await _tenantDbContext.SaveChangesAsync();
 
         return Result.Success();
     }
 
     public async Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string refreshToken)
     {
-        var user = await _userManager.Users
-            .FirstOrDefaultAsync(user => user.RefreshToken == refreshToken);
+        var refreshTokenHash = HashRefreshToken(refreshToken);
+        var session = await _tenantDbContext.UserSessions
+            .Include(userSession => userSession.User)
+            .FirstOrDefaultAsync(userSession =>
+                userSession.RefreshTokenHash == refreshTokenHash &&
+                userSession.RevokedAtUtc == null);
 
-        if (user == null)
+        if (session?.User == null)
         {
             return (Result.Failure("Invalid refresh token."), null);
         }
 
-        user.RefreshToken = null;
-        user.RefreshTokenExpiresAtUtc = null;
-        user.TokenVersion += 1;
+        var user = session.User;
+        session.RevokedAtUtc = DateTime.UtcNow;
+        session.LastSeenAtUtc = DateTime.UtcNow;
+        session.LastSeenIp = GetRemoteIpAddress();
+        session.UserAgent = GetUserAgent();
 
-        var updateResult = await _userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
-        {
-            return (Result.Failure(updateResult.Errors.Select(error => error.Description).ToArray()), null);
-        }
+        await _tenantDbContext.SaveChangesAsync();
 
         return (Result.Success("Logged out successfully."), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
     }
@@ -114,6 +167,20 @@ public class IdentityService : IIdentityService
     {
         var user = await _userManager.FindByIdAsync(userId);
         return user?.TokenVersion;
+    }
+
+    public async Task<bool?> IsSessionActiveAsync(string userId, Guid sessionId)
+    {
+        var session = await _tenantDbContext.UserSessions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(userSession => userSession.Id == sessionId && userSession.UserId == userId);
+
+        if (session == null)
+        {
+            return null;
+        }
+
+        return session.RevokedAtUtc == null && session.ExpiresAtUtc > DateTime.UtcNow;
     }
 
     public async Task<Result> CreateUserAsync(string email, string password, string firstName, string lastName)
@@ -134,5 +201,21 @@ public class IdentityService : IIdentityService
         }
 
         return Result.Success();
+    }
+
+    private string? GetRemoteIpAddress()
+    {
+        return _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+    }
+
+    private string? GetUserAgent()
+    {
+        return _httpContextAccessor.HttpContext?.Request.Headers.UserAgent.ToString();
+    }
+
+    private static string HashRefreshToken(string refreshToken)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+        return Convert.ToHexString(bytes);
     }
 }

@@ -29,18 +29,24 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
 
         var accessTokenExpiresAtUtc = _tokenService.GetAccessTokenExpiresAtUtc();
         var refreshTokenExpiresAtUtc = _tokenService.GetRefreshTokenExpiresAtUtc();
-        var accessToken = _tokenService.GenerateJwtToken(user.UserId, user.Email, request.TenantId, user.TokenVersion);
         var refreshToken = _tokenService.GenerateRefreshToken();
 
-        var saveRefreshTokenResult = await _identityService.SetRefreshTokenAsync(
+        var (saveRefreshTokenResult, sessionId) = await _identityService.CreateSessionAsync(
             user.UserId,
             refreshToken,
             refreshTokenExpiresAtUtc);
 
-        if (!saveRefreshTokenResult.Succeeded)
+        if (!saveRefreshTokenResult.Succeeded || sessionId is null)
         {
             return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors!);
         }
+
+        var accessToken = _tokenService.GenerateJwtToken(
+            user.UserId,
+            user.Email,
+            request.TenantId,
+            user.TokenVersion,
+            sessionId.Value);
 
         _ = await _tokenVersionCacheService.SetTokenVersionAsync(
             request.TenantId,

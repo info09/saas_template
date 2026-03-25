@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using SaaS.Application.Interfaces;
 using SaaS.Infrastructure.Identity;
 using SaaS.Infrastructure.Persistence;
@@ -28,8 +29,26 @@ public static class DependencyInjection
 
             if (string.IsNullOrWhiteSpace(tenantConnectionString))
             {
-                throw new InvalidOperationException(
-                    "Tenant connection string could not be resolved. Ensure the 'X-Tenant-Id' header is present and the tenant exists in the Master Database.");
+                var isEfDesignTime = AppDomain.CurrentDomain.GetAssemblies()
+                    .Any(assembly => string.Equals(assembly.GetName().Name, "Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal));
+
+                if (isEfDesignTime)
+                {
+                    var catalogConnectionString = configuration.GetConnectionString("MasterConnection")
+                        ?? throw new InvalidOperationException("Missing catalog connection string.");
+
+                    var builder = new NpgsqlConnectionStringBuilder(catalogConnectionString)
+                    {
+                        Database = "SaaS_Tenant_Template"
+                    };
+
+                    tenantConnectionString = builder.ConnectionString;
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "Tenant connection string could not be resolved. Ensure the 'X-Tenant-Id' header is present and the tenant exists in the Master Database.");
+                }
             }
 
             options.UseNpgsql(tenantConnectionString, npgsqlOptions =>

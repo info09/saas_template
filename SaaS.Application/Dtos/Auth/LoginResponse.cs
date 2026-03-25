@@ -1,3 +1,7 @@
-﻿namespace SaaS.Application.Dtos.Auth;
+namespace SaaS.Application.Dtos.Auth;
 
-public record LoginResponse(string Token);
+public record LoginResponse(
+    string AccessToken,
+    string RefreshToken,
+    DateTime AccessTokenExpiresAtUtc,
+    DateTime RefreshTokenExpiresAtUtc);

@@ -132,6 +132,17 @@ Content-Type: application/json
 }
 ```
 
+**Cách gọi refresh token**:
+```http
+POST /api/auth/refresh
+X-Tenant-Id: khachhang_01
+Content-Type: application/json
+
+{
+  "refreshToken": "..."
+}
+```
+
 **Quy ước response**:
 - Thành công: trả `Result<T>`.
 - Lỗi validation: trả `ValidationProblemDetails`.

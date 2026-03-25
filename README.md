@@ -40,6 +40,8 @@ Migration commands are now explicit and no longer run automatically during API s
 
 ## API Contract Notes
 - `POST /api/auth/login` expects only `email` and `password` in the request body.
+- `POST /api/auth/refresh` expects `refreshToken` in the request body.
 - Tenant context for login and tenant-scoped APIs comes from the `X-Tenant-Id` header.
+- Auth success responses now return `accessToken`, `refreshToken`, `accessTokenExpiresAtUtc`, and `refreshTokenExpiresAtUtc`.
 - Success responses return `Result<T>`.
 - Failure responses return `ProblemDetails` or `ValidationProblemDetails`.

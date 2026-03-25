@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using SaaS.Application.Common.Models;
+using SaaS.Application.Dtos.Auth;
 using SaaS.Application.Interfaces;
 using SaaS.Infrastructure.Identity;
 
@@ -14,23 +16,59 @@ public class IdentityService : IIdentityService
         _userManager = userManager;
     }
 
-    public async Task<(Result Result, string UserId)> AuthenticateAsync(string email, string password)
+    public async Task<(Result Result, AuthUserInfo? User)> AuthenticateAsync(string email, string password)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user == null)
         {
-            return (Result.Failure("Invalid credentials."), string.Empty);
+            return (Result.Failure("Invalid credentials."), null);
         }
 
-        var result = await _userManager.CheckPasswordAsync(user, password);
+        var isPasswordValid = await _userManager.CheckPasswordAsync(user, password);
 
-        if (!result)
+        if (!isPasswordValid)
         {
-            return (Result.Failure("Invalid credentials."), string.Empty);
+            return (Result.Failure("Invalid credentials."), null);
         }
 
-        return (Result.Success(), user.Id);
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? email));
+    }
+
+    public async Task<(Result Result, AuthUserInfo? User)> GetByRefreshTokenAsync(string refreshToken)
+    {
+        var user = await _userManager.Users
+            .FirstOrDefaultAsync(user =>
+                user.RefreshToken == refreshToken &&
+                user.RefreshTokenExpiresAtUtc.HasValue &&
+                user.RefreshTokenExpiresAtUtc.Value > DateTime.UtcNow);
+
+        if (user == null)
+        {
+            return (Result.Failure("Invalid or expired refresh token."), null);
+        }
+
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty));
+    }
+
+    public async Task<Result> SetRefreshTokenAsync(string userId, string refreshToken, DateTime expiresAtUtc)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return Result.Failure("User not found.");
+        }
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiresAtUtc = expiresAtUtc;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return Result.Failure(updateResult.Errors.Select(error => error.Description).ToArray());
+        }
+
+        return Result.Success();
     }
 
     public async Task<Result> CreateUserAsync(string email, string password, string firstName, string lastName)

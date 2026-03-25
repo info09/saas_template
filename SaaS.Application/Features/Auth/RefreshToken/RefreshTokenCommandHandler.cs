@@ -3,26 +3,25 @@ using SaaS.Application.Common.Models;
 using SaaS.Application.Dtos.Auth;
 using SaaS.Application.Interfaces;
 
-namespace SaaS.Application.Features.Auth.Login;
+namespace SaaS.Application.Features.Auth.RefreshToken;
 
-public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginResponse>>
+public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, Result<LoginResponse>>
 {
     private readonly IIdentityService _identityService;
     private readonly ITokenService _tokenService;
 
-    public LoginCommandHandler(IIdentityService identityService, ITokenService tokenService)
+    public RefreshTokenCommandHandler(IIdentityService identityService, ITokenService tokenService)
     {
         _identityService = identityService;
         _tokenService = tokenService;
     }
 
-    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
+    public async Task<Result<LoginResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
-        var (result, user) = await _identityService.AuthenticateAsync(request.Email, request.Password);
-
+        var (result, user) = await _identityService.GetByRefreshTokenAsync(request.RefreshToken);
         if (!result.Succeeded || user is null)
         {
-            return Result<LoginResponse>.Failure(result.Errors!);
+            return Result<LoginResponse>.Failure(result.Errors ?? ["Invalid or expired refresh token."]);
         }
 
         var accessTokenExpiresAtUtc = _tokenService.GetAccessTokenExpiresAtUtc();
@@ -37,7 +36,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
 
         if (!saveRefreshTokenResult.Succeeded)
         {
-            return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors!);
+            return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors ?? ["Unable to persist refresh token."]);
         }
 
         return Result<LoginResponse>.Success(new LoginResponse(

@@ -18,7 +18,7 @@ Mở file `SaaS.API/appsettings.json` và cập nhật chuỗi kết nối cục
 ```json
 {
   "ConnectionStrings": {
-    "CatalogConnection": "Host=localhost;Database=SaaS_MasterDb;Username=postgres;Password=your_password"
+    "MasterConnection": "Host=localhost;Database=SaaS_MasterDb;Username=postgres;Password=your_password"
   },
   "Jwt": {
     "Key": "chuoi_ky_tu_bi_mat_rat_dai_va_an_toan_1234567890",
@@ -163,3 +163,5 @@ Content-Type: application/json
 - Access token mang claim `tokenVersion`.
 - Redis lưu `tokenVersion` hiện tại của từng user theo tenant.
 - Khi logout, hệ thống tăng `TokenVersion` trong DB và cache, nên access token cũ sẽ bị từ chối ở request tiếp theo.
+- Nếu Redis miss hoặc Redis lỗi, hệ thống fallback sang DB để kiểm tra `TokenVersion`.
+- Nếu cả Redis và DB đều không cung cấp được auth state, API sẽ trả `503 Service Unavailable` theo cấu hình mặc định.

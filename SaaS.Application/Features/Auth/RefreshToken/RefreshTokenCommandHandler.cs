@@ -41,7 +41,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors ?? ["Unable to persist refresh token."]);
         }
 
-        await _tokenVersionCacheService.SetTokenVersionAsync(
+        _ = await _tokenVersionCacheService.SetTokenVersionAsync(
             request.TenantId,
             user.UserId,
             user.TokenVersion,

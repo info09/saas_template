@@ -19,7 +19,7 @@ This is a ready-to-use template for building Software as a Service (SaaS) applic
 - `SaaS.API`: Controllers, JWT authentication setup in `Program.cs`, Swagger, and middlewares.
 
 ## Getting Started
-1. Open `SaaS.API/appsettings.json` and configure your `"CatalogConnection"` pointing to your PostgreSQL server.
+1. Open `SaaS.API/appsettings.json` and configure your `"MasterConnection"` pointing to your PostgreSQL server.
 2. **Create or update EF Core migrations**:
    Open a terminal in the solution folder and run:
    ```bash
@@ -45,5 +45,6 @@ Migration commands are now explicit and no longer run automatically during API s
 - Tenant context for login and tenant-scoped APIs comes from the `X-Tenant-Id` header.
 - Auth success responses now return `accessToken`, `refreshToken`, `accessTokenExpiresAtUtc`, and `refreshTokenExpiresAtUtc`.
 - Access tokens now include a `tokenVersion` claim and are validated against Redis-backed token version state.
+- Token validation strategy is now explicit: Redis hit -> validate from cache, Redis miss/error -> fallback to DB, and if auth state cannot be resolved the API returns `503` by default.
 - Success responses return `Result<T>`.
 - Failure responses return `ProblemDetails` or `ValidationProblemDetails`.

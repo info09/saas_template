@@ -42,7 +42,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             return Result<LoginResponse>.Failure(saveRefreshTokenResult.Errors!);
         }
 
-        await _tokenVersionCacheService.SetTokenVersionAsync(
+        _ = await _tokenVersionCacheService.SetTokenVersionAsync(
             request.TenantId,
             user.UserId,
             user.TokenVersion,

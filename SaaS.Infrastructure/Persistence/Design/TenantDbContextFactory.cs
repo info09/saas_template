@@ -18,10 +18,10 @@ public class TenantDbContextFactory : IDesignTimeDbContextFactory<TenantDbContex
             .AddEnvironmentVariables()
             .Build();
 
-        var catalogConnectionString = configuration.GetConnectionString("MasterConnection")
+        var masterConnectionString = configuration.GetConnectionString("MasterConnection")
             ?? "Host=localhost;Port=5433;Database=SaaS_MasterDb;Username=admin;Password=admin1234";
 
-        var builder = new NpgsqlConnectionStringBuilder(catalogConnectionString)
+        var builder = new NpgsqlConnectionStringBuilder(masterConnectionString)
         {
             Database = "SaaS_Tenant_Template"
         };

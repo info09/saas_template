@@ -23,7 +23,7 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
             return result;
         }
 
-        await _tokenVersionCacheService.SetTokenVersionAsync(
+        _ = await _tokenVersionCacheService.SetTokenVersionAsync(
             request.TenantId,
             user.UserId,
             user.TokenVersion,

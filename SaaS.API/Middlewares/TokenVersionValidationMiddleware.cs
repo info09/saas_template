@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using SaaS.API.Options;
 using SaaS.Application.Interfaces;
 
 namespace SaaS.API.Middlewares;
@@ -6,10 +8,17 @@ namespace SaaS.API.Middlewares;
 public class TokenVersionValidationMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<TokenVersionValidationMiddleware> _logger;
+    private readonly TokenVersionValidationOptions _options;
 
-    public TokenVersionValidationMiddleware(RequestDelegate next)
+    public TokenVersionValidationMiddleware(
+        RequestDelegate next,
+        ILogger<TokenVersionValidationMiddleware> logger,
+        IOptions<TokenVersionValidationOptions> options)
     {
         _next = next;
+        _logger = logger;
+        _options = options.Value;
     }
 
     public async Task InvokeAsync(
@@ -28,34 +37,111 @@ public class TokenVersionValidationMiddleware
             string.IsNullOrWhiteSpace(currentUserService.TenantId) ||
             currentUserService.TokenVersion is null)
         {
+            _logger.LogWarning("Authenticated request {TraceId} is missing token-version claims.", context.TraceIdentifier);
             await WriteUnauthorizedAsync(context, "Invalid token claims.");
             return;
         }
 
-        var cachedTokenVersion = await tokenVersionCacheService.GetTokenVersionAsync(
+        var cacheLookup = await tokenVersionCacheService.GetTokenVersionAsync(
             currentUserService.TenantId,
             currentUserService.UserId,
             context.RequestAborted);
 
-        if (cachedTokenVersion is null)
+        if (cacheLookup.Status == TokenVersionCacheStatus.Hit)
         {
-            var dbTokenVersion = await identityService.GetTokenVersionAsync(currentUserService.UserId);
-            if (dbTokenVersion is null)
+            if (currentUserService.TokenVersion.Value != cacheLookup.TokenVersion)
             {
-                await WriteUnauthorizedAsync(context, "The authenticated user no longer exists.");
+                _logger.LogWarning(
+                    "Revoked access token detected from cache for tenant {TenantId}, user {UserId}, trace {TraceId}. ClaimVersion={ClaimVersion}, CacheVersion={CacheVersion}",
+                    currentUserService.TenantId,
+                    currentUserService.UserId,
+                    context.TraceIdentifier,
+                    currentUserService.TokenVersion.Value,
+                    cacheLookup.TokenVersion);
+
+                await WriteUnauthorizedAsync(context, "This access token has been revoked.");
                 return;
             }
 
-            cachedTokenVersion = dbTokenVersion.Value;
-            await tokenVersionCacheService.SetTokenVersionAsync(
-                currentUserService.TenantId,
-                currentUserService.UserId,
-                cachedTokenVersion.Value,
-                context.RequestAborted);
+            await _next(context);
+            return;
         }
 
-        if (currentUserService.TokenVersion.Value != cachedTokenVersion.Value)
+        int? dbTokenVersion;
+
+        try
         {
+            dbTokenVersion = await identityService.GetTokenVersionAsync(currentUserService.UserId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Token version database fallback failed for tenant {TenantId}, user {UserId}, trace {TraceId}. CacheStatus={CacheStatus}",
+                currentUserService.TenantId,
+                currentUserService.UserId,
+                context.TraceIdentifier,
+                cacheLookup.Status);
+
+            if (_options.FailOpenOnStateUnavailability)
+            {
+                _logger.LogWarning(
+                    "Fail-open is enabled. Allowing request {TraceId} despite unavailable token version state.",
+                    context.TraceIdentifier);
+
+                await _next(context);
+                return;
+            }
+
+            await WriteServiceUnavailableAsync(context, "Authorization state is temporarily unavailable.");
+            return;
+        }
+
+        if (dbTokenVersion is null)
+        {
+            _logger.LogWarning(
+                "Authenticated user not found during token version validation for tenant {TenantId}, user {UserId}, trace {TraceId}.",
+                currentUserService.TenantId,
+                currentUserService.UserId,
+                context.TraceIdentifier);
+
+            await WriteUnauthorizedAsync(context, "The authenticated user no longer exists.");
+            return;
+        }
+
+        if (cacheLookup.Status == TokenVersionCacheStatus.Miss)
+        {
+            _logger.LogInformation(
+                "Token version cache miss for tenant {TenantId}, user {UserId}. Database fallback succeeded for trace {TraceId}.",
+                currentUserService.TenantId,
+                currentUserService.UserId,
+                context.TraceIdentifier);
+        }
+        else if (cacheLookup.Status == TokenVersionCacheStatus.Unavailable)
+        {
+            _logger.LogWarning(
+                "Token version cache unavailable for tenant {TenantId}, user {UserId}. Database fallback succeeded for trace {TraceId}.",
+                currentUserService.TenantId,
+                currentUserService.UserId,
+                context.TraceIdentifier);
+        }
+
+        _ = await tokenVersionCacheService.SetTokenVersionAsync(
+            currentUserService.TenantId,
+            currentUserService.UserId,
+            dbTokenVersion.Value,
+            context.RequestAborted);
+
+        if (currentUserService.TokenVersion.Value != dbTokenVersion.Value)
+        {
+            _logger.LogWarning(
+                "Revoked access token detected from database fallback for tenant {TenantId}, user {UserId}, trace {TraceId}. ClaimVersion={ClaimVersion}, DbVersion={DbVersion}",
+                currentUserService.TenantId,
+                currentUserService.UserId,
+                context.TraceIdentifier,
+                currentUserService.TokenVersion.Value,
+                dbTokenVersion.Value);
+
             await WriteUnauthorizedAsync(context, "This access token has been revoked.");
             return;
         }
@@ -72,6 +158,23 @@ public class TokenVersionValidationMiddleware
         {
             Status = StatusCodes.Status401Unauthorized,
             Title = "Unauthorized.",
+            Detail = detail,
+            Extensions =
+            {
+                ["traceId"] = context.TraceIdentifier
+            }
+        });
+    }
+
+    private static async Task WriteServiceUnavailableAsync(HttpContext context, string detail)
+    {
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        context.Response.ContentType = "application/problem+json";
+
+        await context.Response.WriteAsJsonAsync(new ProblemDetails
+        {
+            Status = StatusCodes.Status503ServiceUnavailable,
+            Title = "Service unavailable.",
             Detail = detail,
             Extensions =
             {

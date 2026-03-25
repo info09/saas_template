@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SaaS.API.Middlewares;
+using SaaS.API.Options;
 using SaaS.Application;
 using SaaS.Infrastructure;
 using SaaS.Infrastructure.Services;
@@ -38,6 +39,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddProblemDetails();
+builder.Services.Configure<TokenVersionValidationOptions>(
+    builder.Configuration.GetSection(TokenVersionValidationOptions.SectionName));
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";

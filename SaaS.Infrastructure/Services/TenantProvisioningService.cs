@@ -23,7 +23,7 @@ public class TenantProvisioningService : ITenantProvisioningService
     public async Task ProvisionTenantAsync(Tenant tenant, string adminEmail, string adminPassword, CancellationToken cancellationToken)
     {
         var masterConnectionString = _configuration.GetConnectionString("MasterConnection")
-            ?? throw new InvalidOperationException("Missing catalog connection string.");
+            ?? throw new InvalidOperationException("Missing master connection string.");
 
         var builder = new NpgsqlConnectionStringBuilder(masterConnectionString)
         {

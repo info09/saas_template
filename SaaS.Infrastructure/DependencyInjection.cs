@@ -34,10 +34,10 @@ public static class DependencyInjection
 
                 if (isEfDesignTime)
                 {
-                    var catalogConnectionString = configuration.GetConnectionString("MasterConnection")
-                        ?? throw new InvalidOperationException("Missing catalog connection string.");
+                    var masterConnectionString = configuration.GetConnectionString("MasterConnection")
+                        ?? throw new InvalidOperationException("Missing master connection string.");
 
-                    var builder = new NpgsqlConnectionStringBuilder(catalogConnectionString)
+                    var builder = new NpgsqlConnectionStringBuilder(masterConnectionString)
                     {
                         Database = "SaaS_Tenant_Template"
                     };

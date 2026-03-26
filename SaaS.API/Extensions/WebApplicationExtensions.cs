@@ -19,7 +19,7 @@ public static class WebApplicationExtensions
         app.UseMiddleware<GlobalExceptionMiddleware>();
         app.UseMiddleware<TenantResolutionMiddleware>();
         app.UseAuthentication();
-        app.UseMiddleware<TokenVersionValidationMiddleware>();
+        app.UseMiddleware<SessionValidationMiddleware>();
         app.UseMiddleware<TenantAuthorizationMiddleware>();
         app.UseAuthorization();
         app.MapControllers();

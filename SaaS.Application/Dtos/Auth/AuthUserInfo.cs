@@ -1,3 +1,3 @@
 namespace SaaS.Application.Dtos.Auth;
 
-public record AuthUserInfo(string UserId, string Email, int TokenVersion, Guid? SessionId = null);
+public record AuthUserInfo(string UserId, string Email, Guid? SessionId = null);

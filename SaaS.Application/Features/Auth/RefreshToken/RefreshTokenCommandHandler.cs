@@ -9,13 +9,11 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
 {
     private readonly IIdentityService _identityService;
     private readonly ITokenService _tokenService;
-    private readonly ITokenVersionCacheService _tokenVersionCacheService;
 
-    public RefreshTokenCommandHandler(IIdentityService identityService, ITokenService tokenService, ITokenVersionCacheService tokenVersionCacheService)
+    public RefreshTokenCommandHandler(IIdentityService identityService, ITokenService tokenService)
     {
         _identityService = identityService;
         _tokenService = tokenService;
-        _tokenVersionCacheService = tokenVersionCacheService;
     }
 
     public async Task<Result<LoginResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
@@ -49,14 +47,7 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
             user.UserId,
             user.Email,
             request.TenantId,
-            user.TokenVersion,
             user.SessionId.Value);
-
-        _ = await _tokenVersionCacheService.SetTokenVersionAsync(
-            request.TenantId,
-            user.UserId,
-            user.TokenVersion,
-            cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse(
             accessToken,

@@ -166,9 +166,9 @@ Content-Type: application/json
 - Lỗi validation: trả `ValidationProblemDetails`.
 - Lỗi nghiệp vụ, auth, tenant: trả `ProblemDetails`.
 
-**Lưu ý về bảo mật token**:
-- Access token mang claim `tokenVersion`.
-- Redis lưu `tokenVersion` hiện tại của từng user theo tenant.
-- Khi logout, hệ thống tăng `TokenVersion` trong DB và cache, nên access token cũ sẽ bị từ chối ở request tiếp theo.
-- Nếu Redis miss hoặc Redis lỗi, hệ thống fallback sang DB để kiểm tra `TokenVersion`.
+**Lưu ý về bảo mật session**:
+- Access token mang claim `sessionId`.
+- Redis lưu session state của từng phiên đăng nhập theo tenant.
+- Khi logout, logout-session, hoặc logout-all, session tương ứng sẽ bị revoke trong DB và cache, nên access token cũ sẽ bị từ chối ở request tiếp theo.
+- Nếu Redis miss hoặc Redis lỗi, hệ thống fallback sang DB để kiểm tra session state.
 - Nếu cả Redis và DB đều không cung cấp được auth state, API sẽ trả `503 Service Unavailable` theo cấu hình mặc định.

@@ -48,7 +48,7 @@ Health endpoints:
 - `POST /api/auth/logout` expects `refreshToken` in the request body.
 - Tenant context for login and tenant-scoped APIs comes from the `X-Tenant-Id` header.
 - Auth success responses now return `accessToken`, `refreshToken`, `accessTokenExpiresAtUtc`, and `refreshTokenExpiresAtUtc`.
-- Access tokens now include a `tokenVersion` claim and are validated against Redis-backed token version state.
-- Token validation strategy is now explicit: Redis hit -> validate from cache, Redis miss/error -> fallback to DB, and if auth state cannot be resolved the API returns `503` by default.
+- Access tokens now include a `sessionId` claim and are validated against Redis-backed session state.
+- Session validation strategy is now explicit: Redis hit -> validate from cache, Redis miss/error -> fallback to DB, and if auth state cannot be resolved the API returns `503` by default.
 - Success responses return `Result<T>`.
 - Failure responses return `ProblemDetails` or `ValidationProblemDetails`.

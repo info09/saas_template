@@ -16,15 +16,21 @@ public class IdentityService : IIdentityService
     private readonly UserManager<AppUser> _userManager;
     private readonly TenantDbContext _tenantDbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ITenantService _tenantService;
+    private readonly ISessionCacheService _sessionCacheService;
 
     public IdentityService(
         UserManager<AppUser> userManager,
         TenantDbContext tenantDbContext,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        ITenantService tenantService,
+        ISessionCacheService sessionCacheService)
     {
         _userManager = userManager;
         _tenantDbContext = tenantDbContext;
         _httpContextAccessor = httpContextAccessor;
+        _tenantService = tenantService;
+        _sessionCacheService = sessionCacheService;
     }
 
     public async Task<(Result Result, AuthUserInfo? User)> AuthenticateAsync(string email, string password)
@@ -43,7 +49,7 @@ public class IdentityService : IIdentityService
             return (Result.Failure("Invalid credentials."), null);
         }
 
-        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? email, user.TokenVersion));
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? email));
     }
 
     public async Task<(Result Result, AuthUserInfo? User)> GetByRefreshTokenAsync(string refreshToken)
@@ -67,7 +73,8 @@ public class IdentityService : IIdentityService
         await _tenantDbContext.SaveChangesAsync();
 
         var user = session.User;
-        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion, session.Id));
+        await CacheSessionAsync(session);
+        return (Result.Success(), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, session.Id));
     }
 
     public async Task<UserProfileResponse?> GetProfileAsync(string userId, string tenantId)
@@ -79,8 +86,7 @@ public class IdentityService : IIdentityService
                 user.Email ?? user.UserName ?? string.Empty,
                 user.FirstName,
                 user.LastName,
-                tenantId,
-                user.TokenVersion))
+                tenantId))
             .FirstOrDefaultAsync();
 
         return user;
@@ -132,6 +138,7 @@ public class IdentityService : IIdentityService
 
         await _tenantDbContext.UserSessions.AddAsync(session);
         await _tenantDbContext.SaveChangesAsync();
+        await CacheSessionAsync(session);
 
         return (Result.Success(), session.Id);
     }
@@ -157,6 +164,7 @@ public class IdentityService : IIdentityService
         session.UserAgent = GetUserAgent();
 
         await _tenantDbContext.SaveChangesAsync();
+        await CacheSessionAsync(session);
 
         return Result.Success();
     }
@@ -182,8 +190,9 @@ public class IdentityService : IIdentityService
         session.UserAgent = GetUserAgent();
 
         await _tenantDbContext.SaveChangesAsync();
+        await CacheSessionAsync(session);
 
-        return (Result.Success("Logged out successfully."), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty, user.TokenVersion));
+        return (Result.Success("Logged out successfully."), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty));
     }
 
     public async Task<Result> RevokeSessionAsync(string userId, Guid sessionId)
@@ -207,6 +216,7 @@ public class IdentityService : IIdentityService
         session.UserAgent = GetUserAgent();
 
         await _tenantDbContext.SaveChangesAsync();
+        await CacheSessionAsync(session);
 
         return Result.Success("Session revoked successfully.");
     }
@@ -236,27 +246,26 @@ public class IdentityService : IIdentityService
 
         await _tenantDbContext.SaveChangesAsync();
 
+        foreach (var session in sessions)
+        {
+            await CacheSessionAsync(session);
+        }
+
         return Result.Success("All sessions revoked successfully.");
     }
 
-    public async Task<int?> GetTokenVersionAsync(string userId)
-    {
-        var user = await _userManager.FindByIdAsync(userId);
-        return user?.TokenVersion;
-    }
-
-    public async Task<bool?> IsSessionActiveAsync(string userId, Guid sessionId)
+    public async Task<SessionCacheEntry?> GetSessionStateAsync(string userId, Guid sessionId)
     {
         var session = await _tenantDbContext.UserSessions
             .AsNoTracking()
-            .FirstOrDefaultAsync(userSession => userSession.Id == sessionId && userSession.UserId == userId);
+            .Where(userSession => userSession.Id == sessionId && userSession.UserId == userId)
+            .Select(userSession => new SessionCacheEntry(
+                userSession.UserId,
+                userSession.ExpiresAtUtc,
+                userSession.RevokedAtUtc != null))
+            .FirstOrDefaultAsync();
 
-        if (session == null)
-        {
-            return null;
-        }
-
-        return session.RevokedAtUtc == null && session.ExpiresAtUtc > DateTime.UtcNow;
+        return session;
     }
 
     public async Task<Result> CreateUserAsync(string email, string password, string firstName, string lastName)
@@ -293,5 +302,19 @@ public class IdentityService : IIdentityService
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
         return Convert.ToHexString(bytes);
+    }
+
+    private async Task CacheSessionAsync(UserSession session)
+    {
+        var tenantId = _tenantService.GetCurrentTenantId();
+        if (string.IsNullOrWhiteSpace(tenantId))
+        {
+            return;
+        }
+
+        _ = await _sessionCacheService.SetSessionAsync(
+            tenantId,
+            session.Id,
+            new SessionCacheEntry(session.UserId, session.ExpiresAtUtc, session.RevokedAtUtc != null));
     }
 }

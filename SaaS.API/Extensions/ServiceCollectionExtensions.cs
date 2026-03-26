@@ -18,8 +18,8 @@ public static class ServiceCollectionExtensions
         services.AddApplication();
         services.AddInfrastructure(configuration);
         services.AddProblemDetails();
-        services.Configure<TokenVersionValidationOptions>(
-            configuration.GetSection(TokenVersionValidationOptions.SectionName));
+        services.Configure<SessionValidationOptions>(
+            configuration.GetSection(SessionValidationOptions.SectionName));
         services.AddConfiguredRedis(configuration);
         services.AddConfiguredAuthentication(configuration);
         services.AddConfiguredHealthChecks(configuration);

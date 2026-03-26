@@ -26,14 +26,5 @@ public class CurrentUserService : ICurrentUserService
         }
     }
 
-    public int? TokenVersion
-    {
-        get
-        {
-            var claimValue = _httpContextAccessor.HttpContext?.User?.FindFirst("tokenVersion")?.Value;
-            return int.TryParse(claimValue, out var tokenVersion) ? tokenVersion : null;
-        }
-    }
-
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 }

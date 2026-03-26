@@ -5,5 +5,4 @@ public record UserProfileResponse(
     string Email,
     string FirstName,
     string LastName,
-    string TenantId,
-    int TokenVersion);
+    string TenantId);

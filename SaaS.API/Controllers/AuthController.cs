@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Authorization;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaaS.API.Extensions;
 using SaaS.Application.Common.Models;
@@ -121,13 +121,16 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
+    [Authorize]
     [ProducesResponseType(typeof(Result), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult> Logout([FromBody] LogoutRequest request)
+    public async Task<ActionResult> Logout()
     {
         var tenantId = _tenantService.GetCurrentTenantId();
+        var userId = _currentUserService.UserId;
+        var sessionId = _currentUserService.SessionId;
         if (string.IsNullOrWhiteSpace(tenantId))
         {
             return BadRequest(new ProblemDetails
@@ -138,7 +141,27 @@ public class AuthController : ControllerBase
             });
         }
 
-        var command = new LogoutCommand(request.RefreshToken, tenantId);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Missing tenant context.",
+                Detail = "Include the 'X-Tenant-Id' header when calling this endpoint."
+            });
+        }
+
+        if (!sessionId.HasValue)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Missing tenant context.",
+                Detail = "Include the 'X-Tenant-Id' header when calling this endpoint."
+            });
+        }
+
+        var command = new LogoutCommand(userId, sessionId.Value, tenantId);
         var result = await _mediator.Send(command);
         return result.ToActionResult();
     }

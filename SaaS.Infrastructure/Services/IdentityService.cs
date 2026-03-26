@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SaaS.Application.Common.Models;
 using SaaS.Application.Dtos.Auth;
@@ -169,13 +169,14 @@ public class IdentityService : IIdentityService
         return Result.Success();
     }
 
-    public async Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string refreshToken)
+    public async Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string userId, Guid sessionId)
     {
-        var refreshTokenHash = HashRefreshToken(refreshToken);
+        //var refreshTokenHash = HashRefreshToken(refreshToken);
         var session = await _tenantDbContext.UserSessions
             .Include(userSession => userSession.User)
             .FirstOrDefaultAsync(userSession =>
-                userSession.RefreshTokenHash == refreshTokenHash &&
+                userSession.Id == sessionId &&
+                userSession.UserId == userId &&
                 userSession.RevokedAtUtc == null);
 
         if (session?.User == null)

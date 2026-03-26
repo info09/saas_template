@@ -11,7 +11,7 @@ public interface IIdentityService
     Task<IReadOnlyList<UserSessionResponse>> GetSessionsAsync(string userId, Guid? currentSessionId);
     Task<(Result Result, Guid? SessionId)> CreateSessionAsync(string userId, string refreshToken, DateTime expiresAtUtc);
     Task<Result> RotateRefreshTokenAsync(string currentRefreshToken, string newRefreshToken, DateTime expiresAtUtc);
-    Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string refreshToken);
+    Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string userId, Guid sessionId);
     Task<Result> RevokeSessionAsync(string userId, Guid sessionId);
     Task<Result> RevokeAllSessionsAsync(string userId);
     Task<SessionCacheEntry?> GetSessionStateAsync(string userId, Guid sessionId);

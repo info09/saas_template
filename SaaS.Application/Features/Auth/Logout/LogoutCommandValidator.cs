@@ -6,7 +6,10 @@ public class LogoutCommandValidator : AbstractValidator<LogoutCommand>
 {
     public LogoutCommandValidator()
     {
-        RuleFor(x => x.RefreshToken)
+        RuleFor(x => x.UserId)
+            .NotEmpty();
+
+        RuleFor(x => x.SessionId)
             .NotEmpty();
 
         RuleFor(x => x.TenantId)

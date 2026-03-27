@@ -11,8 +11,5 @@ public class LogoutCommandValidator : AbstractValidator<LogoutCommand>
 
         RuleFor(x => x.SessionId)
             .NotEmpty();
-
-        RuleFor(x => x.TenantId)
-            .NotEmpty();
     }
 }

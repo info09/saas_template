@@ -150,15 +150,30 @@ Content-Type: application/json
 }
 ```
 
-**Cách gọi logout**:
+**Cách gọi logout current session**:
 ```http
 POST /api/auth/logout
 X-Tenant-Id: khachhang_01
+Authorization: Bearer <access_token>
+```
+
+**Cách gọi logout một session cụ thể**:
+```http
+POST /api/auth/logout-session
+X-Tenant-Id: khachhang_01
+Authorization: Bearer <access_token>
 Content-Type: application/json
 
 {
-  "refreshToken": "..."
+  "sessionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 }
+```
+
+**Cách gọi logout tất cả session**:
+```http
+POST /api/auth/logout-all
+X-Tenant-Id: khachhang_01
+Authorization: Bearer <access_token>
 ```
 
 **Quy ước response**:

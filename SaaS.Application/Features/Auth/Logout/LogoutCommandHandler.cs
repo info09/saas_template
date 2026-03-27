@@ -15,12 +15,6 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
 
     public async Task<Result> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
-        var (result, user) = await _identityService.RevokeRefreshTokenAsync(request.UserId, request.SessionId);
-        if (!result.Succeeded || user is null)
-        {
-            return result;
-        }
-
-        return result;
+        return await _identityService.RevokeCurrentSessionAsync(request.UserId, request.SessionId);
     }
 }

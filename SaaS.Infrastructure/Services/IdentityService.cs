@@ -169,22 +169,19 @@ public class IdentityService : IIdentityService
         return Result.Success();
     }
 
-    public async Task<(Result Result, AuthUserInfo? User)> RevokeRefreshTokenAsync(string userId, Guid sessionId)
+    public async Task<Result> RevokeCurrentSessionAsync(string userId, Guid sessionId)
     {
-        //var refreshTokenHash = HashRefreshToken(refreshToken);
         var session = await _tenantDbContext.UserSessions
-            .Include(userSession => userSession.User)
             .FirstOrDefaultAsync(userSession =>
                 userSession.Id == sessionId &&
                 userSession.UserId == userId &&
                 userSession.RevokedAtUtc == null);
 
-        if (session?.User == null)
+        if (session == null)
         {
-            return (Result.Failure("Invalid refresh token."), null);
+            return Result.Failure("Current session not found or already revoked.");
         }
 
-        var user = session.User;
         session.RevokedAtUtc = DateTime.UtcNow;
         session.LastSeenAtUtc = DateTime.UtcNow;
         session.LastSeenIp = GetRemoteIpAddress();
@@ -193,7 +190,7 @@ public class IdentityService : IIdentityService
         await _tenantDbContext.SaveChangesAsync();
         await CacheSessionAsync(session);
 
-        return (Result.Success("Logged out successfully."), new AuthUserInfo(user.Id, user.Email ?? user.UserName ?? string.Empty));
+        return Result.Success("Logged out successfully.");
     }
 
     public async Task<Result> RevokeSessionAsync(string userId, Guid sessionId)

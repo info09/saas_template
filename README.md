@@ -45,7 +45,9 @@ Health endpoints:
 ## API Contract Notes
 - `POST /api/auth/login` expects only `email` and `password` in the request body.
 - `POST /api/auth/refresh` expects `refreshToken` in the request body.
-- `POST /api/auth/logout` expects `refreshToken` in the request body.
+- `POST /api/auth/logout` revokes the current authenticated session and does not require a request body.
+- `POST /api/auth/logout-session` expects `sessionId` in the request body.
+- `POST /api/auth/logout-all` revokes all sessions for the current authenticated user.
 - Tenant context for login and tenant-scoped APIs comes from the `X-Tenant-Id` header.
 - Auth success responses now return `accessToken`, `refreshToken`, `accessTokenExpiresAtUtc`, and `refreshTokenExpiresAtUtc`.
 - Access tokens now include a `sessionId` claim and are validated against Redis-backed session state.

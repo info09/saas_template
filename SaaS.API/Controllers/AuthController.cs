@@ -131,6 +131,7 @@ public class AuthController : ControllerBase
         var tenantId = _tenantService.GetCurrentTenantId();
         var userId = _currentUserService.UserId;
         var sessionId = _currentUserService.SessionId;
+
         if (string.IsNullOrWhiteSpace(tenantId))
         {
             return BadRequest(new ProblemDetails
@@ -146,8 +147,8 @@ public class AuthController : ControllerBase
             return BadRequest(new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,
-                Title = "Missing tenant context.",
-                Detail = "Include the 'X-Tenant-Id' header when calling this endpoint."
+                Title = "Missing user context.",
+                Detail = "The authenticated user context could not be resolved from the current request."
             });
         }
 
@@ -156,12 +157,12 @@ public class AuthController : ControllerBase
             return BadRequest(new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,
-                Title = "Missing tenant context.",
-                Detail = "Include the 'X-Tenant-Id' header when calling this endpoint."
+                Title = "Missing session context.",
+                Detail = "The authenticated session context could not be resolved from the current request."
             });
         }
 
-        var command = new LogoutCommand(userId, sessionId.Value, tenantId);
+        var command = new LogoutCommand(userId, sessionId.Value);
         var result = await _mediator.Send(command);
         return result.ToActionResult();
     }

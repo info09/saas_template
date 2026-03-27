@@ -8,10 +8,10 @@ namespace SaaS.Infrastructure.Persistence.Design
     {
         public MasterDbContext CreateDbContext(string[] args)
         {
-            var basePath = Path.Combine(Directory.GetCurrentDirectory(), "../SaaS.API");
+            var basePath = ResolveApiProjectPath();
             var optionsBuilder = new DbContextOptionsBuilder<MasterDbContext>();
 
-            if (Directory.Exists(basePath))
+            if (!string.IsNullOrWhiteSpace(basePath))
             {
                 IConfigurationRoot configuration = new ConfigurationBuilder()
                     .SetBasePath(basePath)
@@ -31,6 +31,27 @@ namespace SaaS.Infrastructure.Persistence.Design
             }
 
             return new MasterDbContext(optionsBuilder.Options);
+        }
+
+        private static string? ResolveApiProjectPath()
+        {
+            var currentDirectory = Directory.GetCurrentDirectory();
+            var candidates = new[]
+            {
+                Path.Combine(currentDirectory, "src", "SaaS.API"),
+                Path.Combine(currentDirectory, "..", "SaaS.API"),
+                Path.Combine(currentDirectory, "..", "..", "src", "SaaS.API")
+            };
+
+            foreach (var candidate in candidates.Select(Path.GetFullPath))
+            {
+                if (Directory.Exists(candidate) && File.Exists(Path.Combine(candidate, "appsettings.json")))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
     }
 }

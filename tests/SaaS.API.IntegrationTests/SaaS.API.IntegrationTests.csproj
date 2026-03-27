@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SaaS.API\SaaS.API.csproj" />
-    <ProjectReference Include="..\SaaS.Application\SaaS.Application.csproj" />
+    <ProjectReference Include="..\..\src\SaaS.API\SaaS.API.csproj" />
+    <ProjectReference Include="..\..\src\SaaS.Application\SaaS.Application.csproj" />
   </ItemGroup>
 
 </Project>

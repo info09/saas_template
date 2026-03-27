@@ -9,7 +9,8 @@ public class TenantDbContextFactory : IDesignTimeDbContextFactory<TenantDbContex
 {
     public TenantDbContext CreateDbContext(string[] args)
     {
-        var basePath = Path.Combine(Directory.GetCurrentDirectory(), "../SaaS.API");
+        var basePath = ResolveApiProjectPath()
+            ?? throw new InvalidOperationException("Could not locate the SaaS.API project directory.");
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(basePath)
@@ -30,5 +31,26 @@ public class TenantDbContextFactory : IDesignTimeDbContextFactory<TenantDbContex
         optionsBuilder.UseNpgsql(builder.ConnectionString);
 
         return new TenantDbContext(optionsBuilder.Options);
+    }
+
+    private static string? ResolveApiProjectPath()
+    {
+        var currentDirectory = Directory.GetCurrentDirectory();
+        var candidates = new[]
+        {
+            Path.Combine(currentDirectory, "src", "SaaS.API"),
+            Path.Combine(currentDirectory, "..", "SaaS.API"),
+            Path.Combine(currentDirectory, "..", "..", "src", "SaaS.API")
+        };
+
+        foreach (var candidate in candidates.Select(Path.GetFullPath))
+        {
+            if (Directory.Exists(candidate) && File.Exists(Path.Combine(candidate, "appsettings.json")))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 }

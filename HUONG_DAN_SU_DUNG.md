@@ -13,7 +13,7 @@ Tài liệu này sẽ hướng dẫn bạn cách khởi chạy, cấu hình và 
 
 ## 2. Cấu hình ban đầu (Configuration)
 
-Mở file `SaaS.API/appsettings.json` và cập nhật chuỗi kết nối cục bộ của PostgreSQL cho dữ liệu Master (Catalog):
+Mở file `src/SaaS.API/appsettings.json` và cập nhật chuỗi kết nối cục bộ của PostgreSQL cho dữ liệu Master (Catalog):
 
 ```json
 {
@@ -38,18 +38,18 @@ Mở terminal ở thư mục gốc `SaaS.Template` và chạy:
 
 **A. Migration cho Master Catalog (Lưu danh sách khách hàng):**
 ```bash
-dotnet ef migrations add InitialCatalog -c MasterDbContext -o Migrations -p SaaS.Infrastructure -s SaaS.API
+dotnet ef migrations add InitialCatalog -c MasterDbContext -o Migrations -p src/SaaS.Infrastructure -s src/SaaS.API
 ```
 
 **B. Migration cho Tenant (Lưu Dữ liệu Schema của mỗi khách hàng):**
 ```bash
-dotnet ef migrations add InitialTenant -c TenantDbContext -o Persistence/Migrations/Tenant -p SaaS.Infrastructure -s SaaS.API
+dotnet ef migrations add InitialTenant -c TenantDbContext -o Persistence/Migrations/Tenant -p src/SaaS.Infrastructure -s src/SaaS.API
 ```
 Sau khi đã có migration, apply schema bằng các lệnh explicit sau:
 ```bash
-dotnet run --project SaaS.API -- --migrate-master
-dotnet run --project SaaS.API -- --migrate-tenants
-dotnet run --project SaaS.API -- --migrate-all
+dotnet run --project src/SaaS.API -- --migrate-master
+dotnet run --project src/SaaS.API -- --migrate-tenants
+dotnet run --project src/SaaS.API -- --migrate-all
 ```
 > **Lưu ý**: API không còn tự động chạy migration lúc startup. Điều này tách deployment schema ra khỏi vòng đời boot của ứng dụng.
 
@@ -68,7 +68,7 @@ dotnet run --project SaaS.API -- --migrate-all
 
 Để giữ đúng chuẩn Clean Architecture bạn cần tuân theo thứ tự luồng phụ thuộc sau (Luôn bắt đầu từ Core ra ngoài):
 
-### Bước 1: Domain Layer (`SaaS.Domain`)
+### Bước 1: Domain Layer (`src/SaaS.Domain`)
 Tạo Entity `Product` (Các class thuần túy mang tính chất cốt lõi):
 ```csharp
 namespace SaaS.Domain.Entities;
@@ -79,17 +79,17 @@ public class Product {
 }
 ```
 
-### Bước 2: Application Layer (`SaaS.Application`)
+### Bước 2: Application Layer (`src/SaaS.Application`)
 - Tạo các class DTOs, Commands, Queries (Sử dụng CQRS / MediatR).
 - Tạo interface Repository `IProductRepository` (Nếu dùng pattern Repository).
 - Viết các Validation (Sử dụng FluentValidation) cho đầu vào (Ví dụ: Giá phải > 0).
 
-### Bước 3: Infrastructure Layer (`SaaS.Infrastructure`)
+### Bước 3: Infrastructure Layer (`src/SaaS.Infrastructure`)
 - Khai báo thêm `DbSet<Product>` vào trong `TenantDbContext.cs`.
 - Chạy lệnh `dotnet ef migrations add AddProduct -c TenantDbContext ...`.
 - Triển khai logic ghi/đọc Database dựa theo `IProductRepository`. 
 
-### Bước 4: API Presentation (`SaaS.API`)
+### Bước 4: API Presentation (`src/SaaS.API`)
 Tạo `ProductController.cs`:
 ```csharp
 [ApiController]
@@ -112,7 +112,7 @@ public class ProductController : ControllerBase {
 
 ## 6. Gọi lệnh chạy thử API
 ```bash
-dotnet run --project SaaS.API
+dotnet run --project src/SaaS.API
 ```
 Mở đường dẫn `https://localhost:XXXX/swagger` trên trình duyệt để coi danh sách API.
 

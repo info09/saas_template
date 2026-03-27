@@ -24,19 +24,19 @@
 ### Run & Build
 ```bash
 dotnet build
-dotnet run --project SaaS.API
+dotnet run --project src/SaaS.API
 ```
 
 ### Database Migrations
 ```bash
 # Create migrations
-dotnet ef migrations add InitialCatalog -c MasterDbContext -o Migrations -p SaaS.Infrastructure -s SaaS.API
-dotnet ef migrations add InitialTenant -c TenantDbContext -o Persistence/Migrations/Tenant -p SaaS.Infrastructure -s SaaS.API
+dotnet ef migrations add InitialCatalog -c MasterDbContext -o Migrations -p src/SaaS.Infrastructure -s src/SaaS.API
+dotnet ef migrations add InitialTenant -c TenantDbContext -o Persistence/Migrations/Tenant -p src/SaaS.Infrastructure -s src/SaaS.API
 
 # Apply migrations
-dotnet run --project SaaS.API -- --migrate-all       # both master + all tenants
-dotnet run --project SaaS.API -- --migrate-master    # master DB only
-dotnet run --project SaaS.API -- --migrate-tenants   # all tenant DBs only
+dotnet run --project src/SaaS.API -- --migrate-all       # both master + all tenants
+dotnet run --project src/SaaS.API -- --migrate-master    # master DB only
+dotnet run --project src/SaaS.API -- --migrate-tenants   # all tenant DBs only
 ```
 
 ### Docker

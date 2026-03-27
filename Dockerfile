@@ -12,13 +12,13 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["SaaS.API/SaaS.API.csproj", "SaaS.API/"]
-COPY ["SaaS.Application/SaaS.Application.csproj", "SaaS.Application/"]
-COPY ["SaaS.Domain/SaaS.Domain.csproj", "SaaS.Domain/"]
-COPY ["SaaS.Infrastructure/SaaS.Infrastructure.csproj", "SaaS.Infrastructure/"]
-RUN dotnet restore "./SaaS.API/SaaS.API.csproj"
+COPY ["src/SaaS.API/SaaS.API.csproj", "src/SaaS.API/"]
+COPY ["src/SaaS.Application/SaaS.Application.csproj", "src/SaaS.Application/"]
+COPY ["src/SaaS.Domain/SaaS.Domain.csproj", "src/SaaS.Domain/"]
+COPY ["src/SaaS.Infrastructure/SaaS.Infrastructure.csproj", "src/SaaS.Infrastructure/"]
+RUN dotnet restore "./src/SaaS.API/SaaS.API.csproj"
 COPY . .
-WORKDIR "/src/SaaS.API"
+WORKDIR "/src/src/SaaS.API"
 RUN dotnet build "./SaaS.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage

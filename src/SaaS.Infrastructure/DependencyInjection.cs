@@ -8,6 +8,7 @@ using SaaS.Infrastructure.Identity;
 using SaaS.Infrastructure.Persistence;
 using SaaS.Infrastructure.Repositories;
 using SaaS.Infrastructure.Services;
+using SaaS.Infrastructure.Services.TenantProvisioning;
 
 namespace SaaS.Infrastructure;
 
@@ -67,6 +68,10 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<TenantDbContext>()
             .AddDefaultTokenProviders();
 
+        services.AddSingleton<ITenantConnectionStringFactory, TenantConnectionStringFactory>();
+        services.AddSingleton<ITenantProvisioningDbContextFactory, TenantProvisioningDbContextFactory>();
+        services.AddSingleton<ITenantSchemaMigrator, TenantSchemaMigrator>();
+        services.AddSingleton<ITenantAdminUserSeeder, TenantAdminUserSeeder>();
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
         services.AddScoped<ITenantRepository, TenantRepository>();
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

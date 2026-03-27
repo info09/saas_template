@@ -24,3 +24,5 @@ if (await app.RunMigrationCommandAsync(args))
 
 app.UseApiPipeline();
 app.Run();
+
+public partial class Program;
